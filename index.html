@@ -405,6 +405,17 @@
                         <span class="slider"></span>
                     </label>
                 </div>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Lux Threshold</span>
+                        <span class="slider-value" id="luxThresholdValue">1.0</span>
+                    </div>
+                    <input type="range" min="0.1" max="10.0" step="0.1" value="1.0" class="range-slider" id="luxThresholdSlider">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 5px;">
+                        <span>Dark (0.1)</span>
+                        <span>Bright (10.0)</span>
+                    </div>
+                </div>
                 <p style="margin-top: 15px; font-size: 0.9rem; color: var(--gray);">
                     <i class="fas fa-info-circle"></i> Auto darkness control turns off LEDs when ambient light is below threshold.
                 </p>
@@ -488,6 +499,8 @@
         const colorPreview = document.getElementById('colorPreview');
         const applyColorBtn = document.getElementById('applyColorBtn');
         const randomColorBtn = document.getElementById('randomColorBtn');
+        const luxThresholdSlider = document.getElementById('luxThresholdSlider');
+        const luxThresholdValue = document.getElementById('luxThresholdValue');
 
         // Effect names matching the ESP32 code
         const effects = [
@@ -503,7 +516,8 @@
             speed: 50,
             color: "FF0000",
             enabled: false,
-            auto_darkness_control: false
+            auto_darkness_control: false,
+            lux_threshold: 1.0
         };
 
         // Initialize the effect grid
@@ -567,6 +581,15 @@
             // Auto darkness toggle
             autoDarknessToggle.addEventListener('change', () => {
                 updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
+            });
+
+            // Lux threshold slider
+            luxThresholdSlider.addEventListener('input', () => {
+                luxThresholdValue.textContent = parseFloat(luxThresholdSlider.value).toFixed(1);
+            });
+
+            luxThresholdSlider.addEventListener('change', () => {
+                updateFirebaseValue('lux_threshold', parseFloat(luxThresholdSlider.value));
             });
 
             // Speed slider
@@ -657,6 +680,16 @@
                 if (autoDarkness !== null) {
                     currentState.auto_darkness_control = autoDarkness;
                     autoDarknessToggle.checked = autoDarkness;
+                }
+            });
+
+            // Lux threshold
+            database.ref('lux_threshold').on('value', (snapshot) => {
+                const threshold = snapshot.val();
+                if (threshold !== null) {
+                    currentState.lux_threshold = threshold;
+                    luxThresholdSlider.value = threshold;
+                    luxThresholdValue.textContent = threshold.toFixed(1);
                 }
             });
 
