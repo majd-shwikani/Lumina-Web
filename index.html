@@ -707,6 +707,14 @@
                     statusText.textContent = 'Disconnected from Firebase';
                 }
             });
+
+            // Lux value
+        database.ref('lux').on('value', (snapshot) => {
+              const lux = snapshot.val();
+            if (lux !== null) {
+        document.getElementById('luxValue').textContent = lux.toFixed(2);
+    }
+});
         }
 
         // Initialize the application
