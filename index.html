@@ -178,7 +178,8 @@
 
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            /* Changed minmax(300px, 1fr) to minmax(280px, 1fr) to fit 4 cards on larger screens */
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 25px;
             margin-bottom: 25px;
         }
@@ -290,10 +291,12 @@
             transform: translateX(30px);
         }
 
-        /* Custom Dropdown Styling */
+        /* Custom Dropdown Styling - RECONSTRUCTED FOR MOBILE FRIENDLINESS */
         .dropdown-container {
             position: relative;
             margin-top: 15px;
+            /* Added margin-bottom to account for expanded list */
+            margin-bottom: 20px; 
         }
 
         .dropdown-header {
@@ -312,6 +315,7 @@
             background: rgba(255, 255, 255, 0.15);
         }
 
+        /* Keep header styling clean when active */
         .dropdown-header.active {
             border-bottom-left-radius: 0;
             border-bottom-right-radius: 0;
@@ -327,23 +331,27 @@
         }
 
         .dropdown-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+            /* Removed absolute positioning */
+            /* position: absolute; */ 
+            /* top: 100%; */
+            /* left: 0; */
+            /* right: 0; */
             background: rgba(30, 30, 46, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-top: none;
             border-radius: 0 0 8px 8px;
             max-height: 0;
-            overflow: hidden;
+            overflow: hidden; /* Changed to hidden to prevent scrollbar flicker when closed */
             transition: max-height 0.3s ease;
-            z-index: 10;
+            /* Z-index is less critical now, but keep for overlaying on siblings */
+            z-index: 10; 
             backdrop-filter: blur(10px);
+            /* Ensured list aligns under header */
+            margin-top: -1px; 
         }
 
         .dropdown-list.show {
-            max-height: 200px;
+            max-height: 250px; /* Increased max-height for more items to fit */
             overflow-y: auto;
         }
 
@@ -366,6 +374,7 @@
         .dropdown-item:last-child {
             border-bottom: none;
         }
+        /* ======================================================= */
 
         .slider-container {
             margin: 20px 0;
@@ -406,22 +415,28 @@
             transform: scale(1.1);
         }
 
+        /* === Color Picker Container Layout === */
         .color-picker-container {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px; 
             margin-top: 15px;
+            flex-wrap: wrap; 
         }
+        /* ======================================================= */
+
 
         .color-preview {
             width: 40px;
             height: 40px;
             border-radius: 8px;
             border: 2px solid rgba(255, 255, 255, 0.3);
+            flex-shrink: 0; 
         }
 
         .color-input {
-            flex: 1;
+            flex: 1; 
+            min-width: 80px; 
             padding: 10px;
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -431,12 +446,13 @@
         }
 
         input[type="color"] {
-            width: 60px;
+            width: 50px; 
             height: 40px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.1);
             cursor: pointer;
+            flex-shrink: 0; 
         }
 
         input[type="color"]::-webkit-color-swatch {
@@ -484,6 +500,12 @@
             display: flex;
             gap: 15px;
             margin-top: 20px;
+        }
+        
+        /* Ensure buttons fit well */
+        .action-buttons .btn {
+            flex: 1;
+            justify-content: center; 
         }
 
         .info-text {
@@ -533,6 +555,31 @@
             color: var(--light);
             font-size: 1rem;
         }
+        
+        /* === Timer Input Alignment === */
+        .timer-input-container {
+            display: flex;
+            align-items: center; 
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .timer-input-container label {
+            min-width: 80px; 
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+        
+        .input-time {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            font-size: 1rem;
+        }
+        /* ============================================== */
 
         footer {
             text-align: center;
@@ -542,6 +589,13 @@
             font-size: 0.9rem;
         }
 
+        @media (max-width: 1200px) {
+            /* Adjust grid for smaller screens if 4 cards don't fit well */
+            .card-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+        
         @media (max-width: 768px) {
             .card-grid {
                 grid-template-columns: 1fr;
@@ -573,11 +627,26 @@
             .action-buttons {
                 flex-direction: column;
             }
+            
+            /* Ensure color picker items wrap nicely on very small screens */
+            .color-picker-container {
+                gap: 15px;
+                /* Allow the items to stack better on mobile */
+                justify-content: space-between; 
+            }
+            
+            .color-input {
+                flex: 1 1 100%; /* Make the hex input take full width */
+            }
+            
+            /* Prevent color picker and preview from stacking poorly if they can fit */
+            input[type="color"], .color-preview {
+                flex-basis: auto; 
+            }
         }
     </style>
 </head>
 <body>
-    <!-- LED Background -->
     <div class="led-background">
         <div class="led-strip"></div>
         <div class="led-strip"></div>
@@ -641,6 +710,34 @@
 
             <div class="card">
                 <div class="card-header">
+                    <i class="fas fa-clock"></i>
+                    <h2>Timer Control</h2>
+                </div>
+                
+                <div class="toggle-container" style="margin-bottom: 30px;">
+                    <span class="toggle-label">Timer Enabled</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="timerToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="timer-input-container">
+                    <label for="timerOnTimeInput">Time On:</label>
+                    <input type="time" class="input-time" id="timerOnTimeInput" value="09:00">
+                </div>
+
+                <div class="timer-input-container">
+                    <label for="timerOffTimeInput">Time Off:</label>
+                    <input type="time" class="input-time" id="timerOffTimeInput" value="17:00">
+                </div>
+                
+                <p class="info-text">
+                    <i class="fas fa-info-circle"></i> Timer automatically powers the LED strip on and off at the set times.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card-header">
                     <i class="fas fa-palette"></i>
                     <h2>Effects</h2>
                 </div>
@@ -652,10 +749,9 @@
                         <i class="fas fa-chevron-down dropdown-arrow"></i>
                     </div>
                     <div class="dropdown-list" id="dropdownList">
-                        <!-- Effects will be populated by JavaScript -->
-                    </div>
+                        </div>
                 </div>
-            </div>
+                </div>
 
             <div class="card">
                 <div class="card-header">
@@ -680,7 +776,6 @@
                     <input type="color" class="color-input" id="colorPicker" value="#FF0000">
                     <input type="text" class="color-input" id="colorInput" value="FF0000" placeholder="Hex color (e.g., FF0000)">
                 </div>
-                
                 <div class="action-buttons">
                     <button class="btn btn-primary" id="applyColorBtn">
                         <i class="fas fa-check"></i> Apply Color
@@ -735,6 +830,11 @@
         const luxThresholdInput = document.getElementById('luxThresholdInput');
         const currentLuxValue = document.getElementById('currentLuxValue');
         const luxValue = document.getElementById('luxValue');
+        // NEW DOM Elements for Timer Control
+        const timerToggle = document.getElementById('timerToggle');
+        const timerOnTimeInput = document.getElementById('timerOnTimeInput');
+        const timerOffTimeInput = document.getElementById('timerOffTimeInput');
+
 
         // Effect names matching the ESP32 code
         const effects = [
@@ -742,7 +842,7 @@
             "Vortex", "DNA Helix", "Audio Visualizer", "Lava Lamp", "Radar Sweep",
             "Quantum Particles", "Neural Network", "Galaxy Spin", "Crystal Growth", "Lightning Storm",
             "Ocean Depth", "Northern Lights", "Time Tunnel", "Cyber City", "Solar Flare", "Fire Simulation",
-            "Solid Color"  // NEW: Added Solid Color effect
+            "Solid Color"
         ];
 
         // Current state
@@ -752,7 +852,11 @@
             color: "FF0000",
             enabled: false,
             auto_darkness_control: false,
-            lux_threshold: 1.0
+            lux_threshold: 1.0,
+            // NEW state variables for Timer Control
+            timer_enabled: true,
+            timer_on_time: "09:00",
+            timer_off_time: "17:00"
         };
 
         // Initialize the dropdown
@@ -836,6 +940,7 @@
 
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
+                // Check if the click is outside both the header and the list
                 if (!dropdownHeader.contains(e.target) && !dropdownList.contains(e.target)) {
                     closeDropdown();
                 }
@@ -854,6 +959,8 @@
             // Lux threshold input
             luxThresholdInput.addEventListener('change', () => {
                 let value = parseFloat(luxThresholdInput.value);
+                // Ensure value is non-negative and has one decimal place
+                value = Math.max(0, value);
                 luxThresholdInput.value = value.toFixed(1);
                 updateFirebaseValue('lux_threshold', value);
             });
@@ -901,6 +1008,21 @@
                 colorPreview.style.backgroundColor = `#${randomColor}`;
                 colorPicker.value = `#${randomColor}`;
                 updateFirebaseValue('color', randomColor);
+            });
+            
+            // NEW Timer Toggle
+            timerToggle.addEventListener('change', () => {
+                updateFirebaseValue('timer_enabled', timerToggle.checked);
+            });
+
+            // NEW Time On Input
+            timerOnTimeInput.addEventListener('change', () => {
+                updateFirebaseValue('timer_on', timerOnTimeInput.value);
+            });
+            
+            // NEW Time Off Input
+            timerOffTimeInput.addEventListener('change', () => {
+                updateFirebaseValue('timer_off', timerOffTimeInput.value);
             });
         }
 
@@ -966,6 +1088,33 @@
                 if (threshold !== null) {
                     currentState.lux_threshold = threshold;
                     luxThresholdInput.value = threshold.toFixed(1);
+                }
+            });
+            
+            // NEW Timer Enabled
+            database.ref('timer_enabled').on('value', (snapshot) => {
+                const enabled = snapshot.val();
+                if (enabled !== null) {
+                    currentState.timer_enabled = enabled;
+                    timerToggle.checked = enabled;
+                }
+            });
+
+            // NEW Time On
+            database.ref('timer_on').on('value', (snapshot) => {
+                const time = snapshot.val();
+                if (time !== null) {
+                    currentState.timer_on_time = time;
+                    timerOnTimeInput.value = time;
+                }
+            });
+
+            // NEW Time Off
+            database.ref('timer_off').on('value', (snapshot) => {
+                const time = snapshot.val();
+                if (time !== null) {
+                    currentState.timer_off_time = time;
+                    timerOffTimeInput.value = time;
                 }
             });
 
