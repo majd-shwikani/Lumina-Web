@@ -1031,15 +1031,6 @@
             localStorage.setItem('lastDeviceId', currentState.deviceId);
         }
 
-        // Auto-connect to last used device
-        function autoConnectToLastDevice() {
-            const lastDeviceId = localStorage.getItem('lastDeviceId');
-            if (lastDeviceId && lastDeviceId.trim() !== '') {
-                deviceIdInput.value = lastDeviceId;
-                connectToDevice(lastDeviceId);
-            }
-        }
-
         // Initialize the dropdown
         function initializeDropdown() {
             dropdownList.innerHTML = '';
@@ -1165,7 +1156,8 @@
                 if (isValidHexColor(color)) {
                     updateFirebaseValue('color', color);
                 } else {
-                    alert('Please enter a valid 6-digit hex color code (without #)');
+                    alert('Please enter a valid 6-digit hex color code (e.g., FF0000)');
+                    colorInput.focus();
                 }
             });
 
@@ -1177,163 +1169,158 @@
                 colorPicker.value = `#${randomColor}`;
                 updateFirebaseValue('color', randomColor);
             });
-
+            
             // Timer toggle
             timerToggle.addEventListener('change', () => {
                 updateFirebaseValue('timer_enabled', timerToggle.checked);
             });
 
-            // Timer on time
+            // Time On Input
             timerOnTimeInput.addEventListener('change', () => {
-                updateFirebaseValue('timer_on_time', timerOnTimeInput.value);
+                updateFirebaseValue('timer_on', timerOnTimeInput.value);
             });
-
-            // Timer off time
+            
+            // Time Off Input
             timerOffTimeInput.addEventListener('change', () => {
-                updateFirebaseValue('timer_off_time', timerOffTimeInput.value);
+                updateFirebaseValue('timer_off', timerOffTimeInput.value);
             });
         }
 
-        // Initialize Firebase listeners
+        // Listen for Firebase value changes
         function initializeFirebaseListeners() {
             if (!currentState.basePath) return;
 
-            // Listen for enabled state
-            const enabledRef = database.ref(currentState.basePath + 'enabled');
-            enabledRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.enabled = value;
-                    powerToggle.checked = value;
-                }
-            });
-            firebaseListeners.push(enabledRef);
-
-            // Listen for effect
+            // Effect
             const effectRef = database.ref(currentState.basePath + 'effect');
             effectRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.effect = value;
-                    selectedEffect.textContent = effects[value] || 'Unknown';
-                    
-                    // Update dropdown active item
-                    document.querySelectorAll('.dropdown-item').forEach(el => {
-                        el.classList.remove('active');
-                        if (parseInt(el.dataset.effectId) === value) {
-                            el.classList.add('active');
+                const effect = snapshot.val();
+                if (effect !== null) {
+                    currentState.effect = effect;
+                    selectedEffect.textContent = effects[effect] || 'Unknown Effect';
+                    document.querySelectorAll('.dropdown-item').forEach(item => {
+                        item.classList.remove('active');
+                        if (parseInt(item.dataset.effectId) === effect) {
+                            item.classList.add('active');
                         }
                     });
                 }
             });
             firebaseListeners.push(effectRef);
 
-            // Listen for speed
+            // Speed
             const speedRef = database.ref(currentState.basePath + 'speed');
             speedRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.speed = value;
-                    speedSlider.value = value;
-                    speedValue.textContent = value;
+                const speed = snapshot.val();
+                if (speed !== null) {
+                    currentState.speed = speed;
+                    speedSlider.value = speed;
+                    speedValue.textContent = speed;
                 }
             });
             firebaseListeners.push(speedRef);
 
-            // Listen for color
+            // Color
             const colorRef = database.ref(currentState.basePath + 'color');
             colorRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.color = value;
-                    colorInput.value = value;
-                    colorPreview.style.backgroundColor = `#${value}`;
-                    colorPicker.value = `#${value}`;
+                const color = snapshot.val();
+                if (color !== null) {
+                    currentState.color = color;
+                    colorInput.value = color;
+                    colorPreview.style.backgroundColor = `#${color}`;
+                    colorPicker.value = `#${color}`;
                 }
             });
             firebaseListeners.push(colorRef);
 
-            // Listen for auto_darkness_control
+            // Enabled
+            const enabledRef = database.ref(currentState.basePath + 'enabled');
+            enabledRef.on('value', (snapshot) => {
+                const enabled = snapshot.val();
+                if (enabled !== null) {
+                    currentState.enabled = enabled;
+                    powerToggle.checked = enabled;
+                }
+            });
+            firebaseListeners.push(enabledRef);
+
+            // Auto darkness control
             const autoDarknessRef = database.ref(currentState.basePath + 'auto_darkness_control');
             autoDarknessRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.auto_darkness_control = value;
-                    autoDarknessToggle.checked = value;
+                const autoDarkness = snapshot.val();
+                if (autoDarkness !== null) {
+                    currentState.auto_darkness_control = autoDarkness;
+                    autoDarknessToggle.checked = autoDarkness;
                 }
             });
             firebaseListeners.push(autoDarknessRef);
 
-            // Listen for lux_threshold
+            // Lux threshold
             const luxThresholdRef = database.ref(currentState.basePath + 'lux_threshold');
             luxThresholdRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.lux_threshold = value;
-                    luxThresholdInput.value = value;
+                const threshold = snapshot.val();
+                if (threshold !== null) {
+                    currentState.lux_threshold = threshold;
+                    luxThresholdInput.value = threshold.toFixed(1);
                 }
             });
             firebaseListeners.push(luxThresholdRef);
-
-            // Listen for timer_enabled
+            
+            // Timer Enabled
             const timerEnabledRef = database.ref(currentState.basePath + 'timer_enabled');
             timerEnabledRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.timer_enabled = value;
-                    timerToggle.checked = value;
+                const enabled = snapshot.val();
+                if (enabled !== null) {
+                    currentState.timer_enabled = enabled;
+                    timerToggle.checked = enabled;
                 }
             });
             firebaseListeners.push(timerEnabledRef);
 
-            // Listen for timer_on_time
-            const timerOnTimeRef = database.ref(currentState.basePath + 'timer_on_time');
-            timerOnTimeRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.timer_on_time = value;
-                    timerOnTimeInput.value = value;
+            // Time On
+            const timerOnRef = database.ref(currentState.basePath + 'timer_on');
+            timerOnRef.on('value', (snapshot) => {
+                const time = snapshot.val();
+                if (time !== null) {
+                    currentState.timer_on_time = time;
+                    timerOnTimeInput.value = time;
                 }
             });
-            firebaseListeners.push(timerOnTimeRef);
+            firebaseListeners.push(timerOnRef);
 
-            // Listen for timer_off_time
-            const timerOffTimeRef = database.ref(currentState.basePath + 'timer_off_time');
-            timerOffTimeRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    currentState.timer_off_time = value;
-                    timerOffTimeInput.value = value;
+            // Time Off
+            const timerOffRef = database.ref(currentState.basePath + 'timer_off');
+            timerOffRef.on('value', (snapshot) => {
+                const time = snapshot.val();
+                if (time !== null) {
+                    currentState.timer_off_time = time;
+                    timerOffTimeInput.value = time;
                 }
             });
-            firebaseListeners.push(timerOffTimeRef);
+            firebaseListeners.push(timerOffRef);
 
-            // Listen for ambient_light
-            const ambientLightRef = database.ref(currentState.basePath + 'ambient_light');
-            ambientLightRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    luxValue.textContent = value.toFixed(2);
-                    currentLuxValue.textContent = value.toFixed(2);
+            // Lux value
+            const luxRef = database.ref(currentState.basePath + 'lux');
+            luxRef.on('value', (snapshot) => {
+                const lux = snapshot.val();
+                if (lux !== null) {
+                    luxValue.textContent = lux.toFixed(2);
+                    currentLuxValue.textContent = lux.toFixed(2);
                 }
             });
-            firebaseListeners.push(ambientLightRef);
+            firebaseListeners.push(luxRef);
 
-            // Listen for connection status
-            const connectionRef = database.ref(currentState.basePath + 'connected');
-            connectionRef.on('value', (snapshot) => {
-                const value = snapshot.val();
-                if (value !== null) {
-                    if (value) {
-                        connectionStatus.className = 'status-indicator connected';
-                        statusText.textContent = 'Connected to device';
-                    } else {
-                        connectionStatus.className = 'status-indicator';
-                        statusText.textContent = 'Device disconnected';
-                    }
+            // Connection status
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', (snapshot) => {
+                if (snapshot.val() === true && currentState.basePath) {
+                    connectionStatus.className = 'status-indicator connected';
+                    statusText.textContent = `Connected to ${currentState.deviceId}`;
+                } else {
+                    connectionStatus.className = 'status-indicator';
+                    statusText.textContent = 'Disconnected from Firebase';
                 }
             });
-            firebaseListeners.push(connectionRef);
+            firebaseListeners.push(connectedRef);
         }
 
         // Initialize the application
@@ -1342,11 +1329,17 @@
             initializeEventListeners();
             setControlsEnabled(false);
             
-            // Try to auto-connect to last device
-            autoConnectToLastDevice();
+            // Try to load last used device ID
+            const lastDeviceId = localStorage.getItem('lastDeviceId');
+            if (lastDeviceId) {
+                deviceIdInput.value = lastDeviceId;
+            }
+            
+            // Set initial color preview
+            colorPreview.style.backgroundColor = '#333333';
         }
 
-        // Start the app when DOM is loaded
+        // Start the application when the page loads
         document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
