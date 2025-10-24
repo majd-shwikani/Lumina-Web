@@ -1273,10 +1273,11 @@
                         currentState.timer_off_time = data.timer_off_time;
                     }
                     
-                    if (data.lux_value !== undefined) {
-                        currentLuxValue.textContent = data.lux_value.toFixed(1);
-                        luxValue.textContent = data.lux_value.toFixed(1);
-                    }
+if (data.lux !== undefined) {
+    currentLuxValue.textContent = data.lux.toFixed(1);
+    luxValue.textContent = data.lux.toFixed(1);
+    currentState.lux = data.lux;
+}
                 } else {
                     statusText.textContent = 'Device not found or no data';
                     connectionStatus.className = 'status-indicator';
