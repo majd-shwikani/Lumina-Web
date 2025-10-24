@@ -936,8 +936,8 @@
             auto_darkness_control: false,
             lux_threshold: 1.0,
             timer_enabled: true,
-            timer_on_time: "09:00",
-            timer_off_time: "17:00"
+            timer_on: "09:00",
+            timer_off: "17:00"
         };
 
         // Firebase listeners reference
@@ -1177,12 +1177,12 @@
 
             // Timer on time input
             timerOnTimeInput.addEventListener('change', () => {
-                updateFirebaseValue('timer_on_time', timerOnTimeInput.value);
+                updateFirebaseValue('timer_on', timerOnTimeInput.value);
             });
 
             // Timer off time input
             timerOffTimeInput.addEventListener('change', () => {
-                updateFirebaseValue('timer_off_time', timerOffTimeInput.value);
+                updateFirebaseValue('timer_off', timerOffTimeInput.value);
             });
         }
 
@@ -1263,14 +1263,14 @@
                         currentState.timer_enabled = data.timer_enabled;
                     }
                     
-                    if (data.timer_on_time !== undefined) {
-                        timerOnTimeInput.value = data.timer_on_time;
-                        currentState.timer_on_time = data.timer_on_time;
+                    if (data.timer_on !== undefined) {
+                        timerOnTimeInput.value = data.timer_on;
+                        currentState.timer_on = data.timer_on;
                     }
                     
-                    if (data.timer_off_time !== undefined) {
-                        timerOffTimeInput.value = data.timer_off_time;
-                        currentState.timer_off_time = data.timer_off_time;
+                    if (data.timer_off !== undefined) {
+                        timerOffTimeInput.value = data.timer_off;
+                        currentState.timer_off = data.timer_off;
                     }
                     
 if (data.lux !== undefined) {
