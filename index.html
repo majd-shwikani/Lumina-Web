@@ -552,6 +552,27 @@
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.2);
         }
+        
+        /* New styling for the reset button */
+        .btn-danger-small {
+            padding: 8px 15px; 
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem; 
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-danger-small:hover {
+            background: #c71b6d; /* slightly darker danger */
+            transform: translateY(-1px);
+        }
 
         .action-buttons {
             display: flex;
@@ -634,6 +655,11 @@
             color: var(--light);
             font-size: 1rem;
         }
+        
+        .reset-button-container {
+            margin-top: 20px;
+            text-align: right;
+        }
 
         footer {
             text-align: center;
@@ -674,6 +700,11 @@
 
             .device-id-input {
                 min-width: auto;
+            }
+            
+            .reset-button-container {
+                text-align: center;
+                margin-bottom: 20px;
             }
         }
 
@@ -720,7 +751,6 @@
             <p class="subtitle">Advanced LED Lighting Management System</p>
         </header>
 
-        <!-- Device ID Section -->
         <div class="device-id-section">
             <div class="device-id-container">
                 <span class="device-id-label">Device ID:</span>
@@ -780,6 +810,12 @@
                     <input type="number" min="0.1" step="0.1" value="1.0" class="lux-input" id="luxThresholdInput">
                 </div>
                 
+                <div class="reset-button-container">
+                    <button class="btn-danger-small" id="resetDeviceBtn">
+                        <i class="fas fa-redo-alt"></i> Reset Device
+                    </button>
+                </div>
+                
                 <p class="info-text">
                     <i class="fas fa-info-circle"></i> Auto darkness control turns off LEDs when ambient light is below threshold.
                 </p>
@@ -827,8 +863,7 @@
                         <i class="fas fa-chevron-down dropdown-arrow"></i>
                     </div>
                     <div class="dropdown-list" id="dropdownList">
-                        <!-- Effects will be populated here -->
-                    </div>
+                        </div>
                 </div>
             </div>
 
@@ -915,6 +950,7 @@
         const timerToggle = document.getElementById('timerToggle');
         const timerOnTimeInput = document.getElementById('timerOnTimeInput');
         const timerOffTimeInput = document.getElementById('timerOffTimeInput');
+        const resetDeviceBtn = document.getElementById('resetDeviceBtn'); // NEW: Reset Button
 
         // Effect names matching the ESP32 code
         const effects = [
@@ -946,7 +982,7 @@
         // Set controls enabled/disabled state
         function setControlsEnabled(enabled) {
             const controls = [
-                powerToggle, autoDarknessToggle, luxThresholdInput,
+                powerToggle, autoDarknessToggle, luxThresholdInput, resetDeviceBtn, // Added resetDeviceBtn
                 speedSlider, colorPicker, colorInput, applyColorBtn, randomColorBtn,
                 timerToggle, timerOnTimeInput, timerOffTimeInput
             ];
@@ -1183,6 +1219,13 @@
             // Timer off time input
             timerOffTimeInput.addEventListener('change', () => {
                 updateFirebaseValue('timer_off', timerOffTimeInput.value);
+            });
+            
+            // NEW: Reset Device Button
+            resetDeviceBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset the device? This will set the "reset" value to true in Firebase.')) {
+                    updateFirebaseValue('reset', true);
+                }
             });
         }
 
