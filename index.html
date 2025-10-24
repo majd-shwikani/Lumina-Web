@@ -724,7 +724,7 @@
         <div class="device-id-section">
             <div class="device-id-container">
                 <span class="device-id-label">Device ID:</span>
-                <input type="text" class="device-id-input" id="deviceIdInput" placeholder="Enter device ID (e.g., friend1_leds)" value="">
+                <input type="text" class="device-id-input" id="deviceIdInput" placeholder="Enter device ID (e.g., friend1_leds)" value="friend1_leds">
                 <button class="device-id-btn" id="connectDeviceBtn">
                     <i class="fas fa-plug"></i> Connect to Device
                 </button>
@@ -737,11 +737,11 @@
         <div class="status-bar">
             <div class="status-item">
                 <div class="status-indicator" id="connectionStatus"></div>
-                <span id="statusText">Enter Device ID to Connect</span>
+                <span id="statusText">Connecting to device...</span>
             </div>
             <div class="status-item">
                 <i class="fas fa-microchip"></i>
-                <span>Device: <span id="currentDeviceId">--</span></span>
+                <span>Device: <span id="currentDeviceId">friend1_leds</span></span>
             </div>
             <div class="status-item">
                 <i class="fas fa-sun"></i>
@@ -758,14 +758,14 @@
                 <div class="toggle-container">
                     <span class="toggle-label">LED Strip Power</span>
                     <label class="toggle">
-                        <input type="checkbox" id="powerToggle" disabled>
+                        <input type="checkbox" id="powerToggle">
                         <span class="slider"></span>
                     </label>
                 </div>
                 <div class="toggle-container">
                     <span class="toggle-label">Auto Darkness Control</span>
                     <label class="toggle">
-                        <input type="checkbox" id="autoDarknessToggle" disabled>
+                        <input type="checkbox" id="autoDarknessToggle">
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -777,7 +777,7 @@
                 
                 <div class="lux-input-container">
                     <label for="luxThresholdInput">Lux Threshold:</label>
-                    <input type="number" min="0.1" step="0.1" value="1.0" class="lux-input" id="luxThresholdInput" disabled>
+                    <input type="number" min="0.1" step="0.1" value="1.0" class="lux-input" id="luxThresholdInput">
                 </div>
                 
                 <p class="info-text">
@@ -794,19 +794,19 @@
                 <div class="toggle-container" style="margin-bottom: 30px;">
                     <span class="toggle-label">Timer Enabled</span>
                     <label class="toggle">
-                        <input type="checkbox" id="timerToggle" disabled>
+                        <input type="checkbox" id="timerToggle">
                         <span class="slider"></span>
                     </label>
                 </div>
                 
                 <div class="timer-input-container">
                     <label for="timerOnTimeInput">Time On:</label>
-                    <input type="time" class="input-time" id="timerOnTimeInput" value="09:00" disabled>
+                    <input type="time" class="input-time" id="timerOnTimeInput" value="09:00">
                 </div>
 
                 <div class="timer-input-container">
                     <label for="timerOffTimeInput">Time Off:</label>
-                    <input type="time" class="input-time" id="timerOffTimeInput" value="17:00" disabled>
+                    <input type="time" class="input-time" id="timerOffTimeInput" value="17:00">
                 </div>
                 
                 <p class="info-text">
@@ -823,7 +823,7 @@
                 
                 <div class="dropdown-container">
                     <div class="dropdown-header" id="dropdownHeader">
-                        <span id="selectedEffect">Select Device First</span>
+                        <span id="selectedEffect">Selecting Effect...</span>
                         <i class="fas fa-chevron-down dropdown-arrow"></i>
                     </div>
                     <div class="dropdown-list" id="dropdownList">
@@ -843,7 +843,7 @@
                         <span>Animation Speed</span>
                         <span class="slider-value" id="speedValue">--</span>
                     </div>
-                    <input type="range" min="10" max="200" value="50" class="range-slider" id="speedSlider" disabled>
+                    <input type="range" min="10" max="200" value="50" class="range-slider" id="speedSlider">
                     <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 5px;">
                         <span>Fast</span>
                         <span>Slow</span>
@@ -852,14 +852,14 @@
 
                 <div class="color-picker-container">
                     <div class="color-preview" id="colorPreview" style="background-color: #333333;"></div>
-                    <input type="color" class="color-input" id="colorPicker" value="#333333" disabled>
-                    <input type="text" class="color-input" id="colorInput" value="" placeholder="Hex color" disabled>
+                    <input type="color" class="color-input" id="colorPicker" value="#333333">
+                    <input type="text" class="color-input" id="colorInput" value="" placeholder="Hex color">
                 </div>
                 <div class="action-buttons">
-                    <button class="btn btn-primary" id="applyColorBtn" disabled>
+                    <button class="btn btn-primary" id="applyColorBtn">
                         <i class="fas fa-check"></i> Apply Color
                     </button>
-                    <button class="btn btn-secondary" id="randomColorBtn" disabled>
+                    <button class="btn btn-secondary" id="randomColorBtn">
                         <i class="fas fa-random"></i> Random
                     </button>
                 </div>
@@ -927,8 +927,8 @@
 
         // Current state
         let currentState = {
-            deviceId: null,
-            basePath: null,
+            deviceId: "friend1_leds",
+            basePath: "/devices/friend1_leds/",
             effect: 0,
             speed: 50,
             color: "FF0000",
@@ -1163,171 +1163,141 @@
 
             // Random color button
             randomColorBtn.addEventListener('click', () => {
-                const randomColor = getRandomColor();
-                colorInput.value = randomColor;
-                colorPreview.style.backgroundColor = `#${randomColor}`;
-                colorPicker.value = `#${randomColor}`;
-                updateFirebaseValue('color', randomColor);
+                const color = getRandomColor();
+                colorInput.value = color;
+                colorPreview.style.backgroundColor = `#${color}`;
+                colorPicker.value = `#${color}`;
+                updateFirebaseValue('color', color);
             });
-            
+
             // Timer toggle
             timerToggle.addEventListener('change', () => {
                 updateFirebaseValue('timer_enabled', timerToggle.checked);
             });
 
-            // Time On Input
+            // Timer on time input
             timerOnTimeInput.addEventListener('change', () => {
-                updateFirebaseValue('timer_on', timerOnTimeInput.value);
+                updateFirebaseValue('timer_on_time', timerOnTimeInput.value);
             });
-            
-            // Time Off Input
+
+            // Timer off time input
             timerOffTimeInput.addEventListener('change', () => {
-                updateFirebaseValue('timer_off', timerOffTimeInput.value);
+                updateFirebaseValue('timer_off_time', timerOffTimeInput.value);
             });
         }
 
-        // Listen for Firebase value changes
+        // Initialize Firebase listeners
         function initializeFirebaseListeners() {
             if (!currentState.basePath) return;
-
-            // Effect
-            const effectRef = database.ref(currentState.basePath + 'effect');
-            effectRef.on('value', (snapshot) => {
-                const effect = snapshot.val();
-                if (effect !== null) {
-                    currentState.effect = effect;
-                    selectedEffect.textContent = effects[effect] || 'Unknown Effect';
-                    document.querySelectorAll('.dropdown-item').forEach(item => {
-                        item.classList.remove('active');
-                        if (parseInt(item.dataset.effectId) === effect) {
-                            item.classList.add('active');
-                        }
-                    });
-                }
-            });
-            firebaseListeners.push(effectRef);
-
-            // Speed
-            const speedRef = database.ref(currentState.basePath + 'speed');
-            speedRef.on('value', (snapshot) => {
-                const speed = snapshot.val();
-                if (speed !== null) {
-                    currentState.speed = speed;
-                    speedSlider.value = speed;
-                    speedValue.textContent = speed;
-                }
-            });
-            firebaseListeners.push(speedRef);
-
-            // Color
-            const colorRef = database.ref(currentState.basePath + 'color');
-            colorRef.on('value', (snapshot) => {
-                const color = snapshot.val();
-                if (color !== null) {
-                    currentState.color = color;
-                    colorInput.value = color;
-                    colorPreview.style.backgroundColor = `#${color}`;
-                    colorPicker.value = `#${color}`;
-                }
-            });
-            firebaseListeners.push(colorRef);
-
-            // Enabled
-            const enabledRef = database.ref(currentState.basePath + 'enabled');
-            enabledRef.on('value', (snapshot) => {
-                const enabled = snapshot.val();
-                if (enabled !== null) {
-                    currentState.enabled = enabled;
-                    powerToggle.checked = enabled;
-                }
-            });
-            firebaseListeners.push(enabledRef);
-
-            // Auto darkness control
-            const autoDarknessRef = database.ref(currentState.basePath + 'auto_darkness_control');
-            autoDarknessRef.on('value', (snapshot) => {
-                const autoDarkness = snapshot.val();
-                if (autoDarkness !== null) {
-                    currentState.auto_darkness_control = autoDarkness;
-                    autoDarknessToggle.checked = autoDarkness;
-                }
-            });
-            firebaseListeners.push(autoDarknessRef);
-
-            // Lux threshold
-            const luxThresholdRef = database.ref(currentState.basePath + 'lux_threshold');
-            luxThresholdRef.on('value', (snapshot) => {
-                const threshold = snapshot.val();
-                if (threshold !== null) {
-                    currentState.lux_threshold = threshold;
-                    luxThresholdInput.value = threshold.toFixed(1);
-                }
-            });
-            firebaseListeners.push(luxThresholdRef);
             
-            // Timer Enabled
-            const timerEnabledRef = database.ref(currentState.basePath + 'timer_enabled');
-            timerEnabledRef.on('value', (snapshot) => {
-                const enabled = snapshot.val();
-                if (enabled !== null) {
-                    currentState.timer_enabled = enabled;
-                    timerToggle.checked = enabled;
-                }
-            });
-            firebaseListeners.push(timerEnabledRef);
-
-            // Time On
-            const timerOnRef = database.ref(currentState.basePath + 'timer_on');
-            timerOnRef.on('value', (snapshot) => {
-                const time = snapshot.val();
-                if (time !== null) {
-                    currentState.timer_on_time = time;
-                    timerOnTimeInput.value = time;
-                }
-            });
-            firebaseListeners.push(timerOnRef);
-
-            // Time Off
-            const timerOffRef = database.ref(currentState.basePath + 'timer_off');
-            timerOffRef.on('value', (snapshot) => {
-                const time = snapshot.val();
-                if (time !== null) {
-                    currentState.timer_off_time = time;
-                    timerOffTimeInput.value = time;
-                }
-            });
-            firebaseListeners.push(timerOffRef);
-
-            // Lux value
-            const luxRef = database.ref(currentState.basePath + 'lux');
-            luxRef.on('value', (snapshot) => {
-                const lux = snapshot.val();
-                if (lux !== null) {
-                    luxValue.textContent = lux.toFixed(2);
-                    currentLuxValue.textContent = lux.toFixed(2);
-                }
-            });
-            firebaseListeners.push(luxRef);
-
-            // Connection status
-            const connectedRef = database.ref('.info/connected');
-            connectedRef.on('value', (snapshot) => {
-                if (snapshot.val() === true && currentState.basePath) {
-                    connectionStatus.className = 'status-indicator connected';
-                    statusText.textContent = `Connected to ${currentState.deviceId}`;
-                } else {
-                    connectionStatus.className = 'status-indicator';
-                    statusText.textContent = 'Disconnected from Firebase';
-                }
-            });
+            // Listen for connection status
+            const connectedRef = database.ref(".info/connected");
             firebaseListeners.push(connectedRef);
+            
+            connectedRef.on("value", (snap) => {
+                if (snap.val() === true) {
+                    statusText.textContent = 'Connected to Firebase';
+                    connectionStatus.className = 'status-indicator connected';
+                } else {
+                    statusText.textContent = 'Disconnected from Firebase';
+                    connectionStatus.className = 'status-indicator';
+                }
+            });
+
+            // Listen for device data
+            const deviceRef = database.ref(currentState.basePath);
+            firebaseListeners.push(deviceRef);
+            
+            deviceRef.on("value", (snapshot) => {
+                const data = snapshot.val();
+                
+                if (data) {
+                    statusText.textContent = 'Connected to device';
+                    connectionStatus.className = 'status-indicator connected';
+                    
+                    // Update UI with device data
+                    if (data.enabled !== undefined) {
+                        powerToggle.checked = data.enabled;
+                        currentState.enabled = data.enabled;
+                    }
+                    
+                    if (data.effect !== undefined) {
+                        currentState.effect = data.effect;
+                        selectedEffect.textContent = effects[data.effect] || 'Unknown Effect';
+                        
+                        // Update dropdown selection
+                        document.querySelectorAll('.dropdown-item').forEach(item => {
+                            item.classList.remove('active');
+                            if (parseInt(item.dataset.effectId) === data.effect) {
+                                item.classList.add('active');
+                            }
+                        });
+                    }
+                    
+                    if (data.speed !== undefined) {
+                        speedSlider.value = data.speed;
+                        speedValue.textContent = data.speed;
+                        currentState.speed = data.speed;
+                    }
+                    
+                    if (data.color !== undefined) {
+                        const color = data.color.toUpperCase();
+                        colorInput.value = color;
+                        colorPreview.style.backgroundColor = `#${color}`;
+                        colorPicker.value = `#${color}`;
+                        currentState.color = color;
+                    }
+                    
+                    if (data.auto_darkness_control !== undefined) {
+                        autoDarknessToggle.checked = data.auto_darkness_control;
+                        currentState.auto_darkness_control = data.auto_darkness_control;
+                    }
+                    
+                    if (data.lux_threshold !== undefined) {
+                        luxThresholdInput.value = data.lux_threshold.toFixed(1);
+                        currentState.lux_threshold = data.lux_threshold;
+                    }
+                    
+                    if (data.timer_enabled !== undefined) {
+                        timerToggle.checked = data.timer_enabled;
+                        currentState.timer_enabled = data.timer_enabled;
+                    }
+                    
+                    if (data.timer_on_time !== undefined) {
+                        timerOnTimeInput.value = data.timer_on_time;
+                        currentState.timer_on_time = data.timer_on_time;
+                    }
+                    
+                    if (data.timer_off_time !== undefined) {
+                        timerOffTimeInput.value = data.timer_off_time;
+                        currentState.timer_off_time = data.timer_off_time;
+                    }
+                    
+                    if (data.lux_value !== undefined) {
+                        currentLuxValue.textContent = data.lux_value.toFixed(1);
+                        luxValue.textContent = data.lux_value.toFixed(1);
+                    }
+                } else {
+                    statusText.textContent = 'Device not found or no data';
+                    connectionStatus.className = 'status-indicator';
+                }
+            }, (error) => {
+                console.error('Firebase listener error:', error);
+                statusText.textContent = 'Error connecting to device';
+                connectionStatus.className = 'status-indicator';
+            });
         }
 
         // Initialize the application
         function initializeApp() {
+            // Initialize UI components
             initializeDropdown();
             initializeEventListeners();
+            
+            // Set initial UI state
             setControlsEnabled(false);
+            speedValue.textContent = speedSlider.value;
+            colorPreview.style.backgroundColor = colorPicker.value;
             
             // Try to load last used device ID
             const lastDeviceId = localStorage.getItem('lastDeviceId');
@@ -1335,8 +1305,8 @@
                 deviceIdInput.value = lastDeviceId;
             }
             
-            // Set initial color preview
-            colorPreview.style.backgroundColor = '#333333';
+            // Auto-connect to the default device
+            connectToDevice(deviceIdInput.value);
         }
 
         // Start the application when the page loads
