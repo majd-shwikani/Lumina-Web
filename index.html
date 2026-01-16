@@ -178,7 +178,7 @@
 
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px;
             margin-bottom: 25px;
         }
@@ -542,6 +542,28 @@
             font-size: 1rem;
         }
 
+        .lux-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .lux-input-container label {
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .lux-input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            font-size: 1rem;
+        }
+
         .settings-link {
             position: absolute;
             top: 20px;
@@ -690,11 +712,17 @@
                     <span class="value" id="currentLuxValue">--</span>
                 </div>
                 
+                <div class="lux-input-container">
+                    <label for="luxThresholdInput">Lux Threshold:</label>
+                    <input type="number" min="0.1" step="0.1" value="1.0" class="lux-input" id="luxThresholdInput">
+                </div>
+                
                 <p class="info-text">
                     <i class="fas fa-info-circle"></i> Auto darkness control turns off LEDs when ambient light is below threshold.
                 </p>
             </div>
 
+            <!-- Timer Card (Added from index.html) -->
             <div class="card">
                 <div class="card-header">
                     <i class="fas fa-clock"></i>
@@ -726,6 +754,25 @@
 
             <div class="card">
                 <div class="card-header">
+                    <i class="fas fa-user-check"></i>
+                    <h2>Presence Sensor</h2>
+                </div>
+                <div class="lux-display">
+                    <span class="label">Presence:</span>
+                    <span class="value" id="presenceValue">--</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="calibrateMicBtn">
+                        <i class="fas fa-microphone"></i> Calibrate Microphone
+                    </button>
+                </div>
+                <p class="info-text">
+                    <i class="fas fa-info-circle"></i> Live LD2410 presence detection state.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
                     <i class="fas fa-palette"></i>
                     <h2>Effects</h2>
                 </div>
@@ -737,7 +784,8 @@
                         <i class="fas fa-chevron-down dropdown-arrow"></i>
                     </div>
                     <div class="dropdown-list" id="dropdownList">
-                        </div>
+                        <!-- Effects will be populated by JavaScript -->
+                    </div>
                 </div>
             </div>
 
@@ -760,8 +808,8 @@
                 </div>
 
                 <div class="color-picker-container">
-                    <div class="color-preview" id="colorPreview" style="background-color: #333333;"></div>
-                    <input type="color" class="color-input" id="colorPicker" value="#333333">
+                    <div class="color-preview" id="colorPreview" style="background-color: #FF0000;"></div>
+                    <input type="color" class="color-input" id="colorPicker" value="#FF0000">
                     <input type="text" class="color-input" id="colorInput" value="" placeholder="Hex color">
                 </div>
                 <div class="action-buttons">
@@ -821,6 +869,9 @@
         const timerToggle = document.getElementById('timerToggle');
         const timerOnTimeInput = document.getElementById('timerOnTimeInput');
         const timerOffTimeInput = document.getElementById('timerOffTimeInput');
+        const luxThresholdInput = document.getElementById('luxThresholdInput');
+        const presenceValue = document.getElementById('presenceValue');
+        const calibrateMicBtn = document.getElementById('calibrateMicBtn');
 
         // Effect names matching the ESP32 code
         const effects = [
@@ -828,7 +879,10 @@
             "Vortex", "DNA Helix", "Audio Visualizer", "Lava Lamp", "Radar Sweep",
             "Quantum Particles", "Neural Network", "Galaxy Spin", "Crystal Growth", "Lightning Storm",
             "Ocean Depth", "Northern Lights", "Time Tunnel", "Cyber City", "Solar Flare", "Fire Simulation",
-            "Solid Color"
+            "Solid Color",
+            "Frequency Spectrum", "Reactive Waveform", "Beat Pulse", "Frequency Bloom",
+            "Audio Reactive Fire", "Musical Rainbow", "Reactive Strobe", "Guitar Visualizer",
+            "Cascading Frequency", "Energy Orbits", "Audio Ripples"
         ];
 
         // Current state
@@ -854,11 +908,12 @@
             const controls = [
                 powerToggle, autoDarknessToggle,
                 speedSlider, colorPicker, colorInput, applyColorBtn, randomColorBtn,
-                timerToggle, timerOnTimeInput, timerOffTimeInput
+                timerToggle, timerOnTimeInput, timerOffTimeInput,
+                luxThresholdInput, calibrateMicBtn
             ];
             
             controls.forEach(control => {
-                control.disabled = !enabled;
+                if (control) control.disabled = !enabled;
             });
 
             if (enabled) {
@@ -1011,6 +1066,13 @@
                 updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
             });
 
+            // Lux threshold input
+            luxThresholdInput.addEventListener('change', () => {
+                let value = parseFloat(luxThresholdInput.value);
+                luxThresholdInput.value = value.toFixed(1);
+                updateFirebaseValue('lux_threshold', value);
+            });
+
             // Speed slider
             speedSlider.addEventListener('input', () => {
                 speedValue.textContent = speedSlider.value;
@@ -1069,6 +1131,25 @@
             // Timer off time input
             timerOffTimeInput.addEventListener('change', () => {
                 updateFirebaseValue('timer_off', timerOffTimeInput.value);
+            });
+
+            // Microphone calibration button
+            calibrateMicBtn.addEventListener('click', async () => {
+                try {
+                    calibrateMicBtn.disabled = true;
+                    calibrateMicBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calibrating...';
+                    if (!currentState.basePath) throw new Error('No device selected');
+                    await database.ref(currentState.basePath + 'mic_calibration').set(true);
+                    setTimeout(async () => {
+                        await database.ref(currentState.basePath + 'mic_calibration').set(false);
+                        calibrateMicBtn.disabled = false;
+                        calibrateMicBtn.innerHTML = '<i class="fas fa-microphone"></i> Calibrate Microphone';
+                    }, 20000);
+                } catch (err) {
+                    console.error('Mic calibration error:', err);
+                    calibrateMicBtn.disabled = false;
+                    calibrateMicBtn.innerHTML = '<i class="fas fa-microphone"></i> Calibrate Microphone';
+                }
             });
         }
 
@@ -1139,6 +1220,11 @@
                         currentState.auto_darkness_control = data.auto_darkness_control;
                     }
                     
+                    if (data.lux_threshold !== undefined) {
+                        luxThresholdInput.value = data.lux_threshold.toFixed(1);
+                        currentState.lux_threshold = data.lux_threshold;
+                    }
+                    
                     if (data.timer_enabled !== undefined) {
                         timerToggle.checked = data.timer_enabled;
                         currentState.timer_enabled = data.timer_enabled;
@@ -1157,6 +1243,10 @@
                     if (data.lux !== undefined) {
                         currentLuxValue.textContent = data.lux.toFixed(1);
                         luxValue.textContent = data.lux.toFixed(1);
+                    }
+                    
+                    if (data.presence !== undefined) {
+                        presenceValue.textContent = data.presence ? 'YES' : 'NO';
                     }
                 } else {
                     statusText.textContent = 'Device not found';
@@ -1179,6 +1269,9 @@
             
             // Set initial state
             setControlsEnabled(false);
+            
+            // Set initial color preview
+            colorPreview.style.backgroundColor = `#${currentState.color}`;
             
             // Try to load last used device ID
             const lastDeviceId = localStorage.getItem('lastDeviceId');
