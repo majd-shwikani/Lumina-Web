@@ -246,6 +246,62 @@
             color: var(--gray);
         }
 
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .toggle-label {
+            font-size: 1.1rem;
+        }
+
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray);
+            transition: var(--transition);
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+
         .slider-container {
             margin: 20px 0;
         }
@@ -353,6 +409,19 @@
             font-family: monospace;
         }
 
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: var(--danger);
+        }
+
+        .status-indicator.active {
+            background: var(--success);
+        }
+
         footer {
             text-align: center;
             margin-top: 40px;
@@ -442,28 +511,50 @@
 
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-sun"></i>
-                <h2>Light Sensitivity</h2>
+                <i class="fas fa-robot"></i>
+                <h2>Automations</h2>
+            </div>
+            
+            <div class="toggle-container">
+                <span class="toggle-label">Auto Darkness Control</span>
+                <label class="toggle">
+                    <input type="checkbox" id="autoDarknessToggle">
+                    <span class="slider"></span>
+                </label>
             </div>
             
             <div class="form-group">
                 <label for="luxThresholdInput" class="form-label">Lux Threshold</label>
-<input type="number" min="1" max="100" step="0.1" value="10" class="form-control" id="luxThresholdInput">
+                <input type="number" min="0.1" max="100" step="0.1" value="10.0" class="form-control" id="luxThresholdInput">
+                <div class="form-text">
+                    The lux threshold determines when the auto darkness control will turn off the LEDs. 
+                    Lower values mean the LEDs will turn off in darker conditions.
                 </div>
+            </div>
             
-            <div class="form-text">
-                The lux threshold determines when the auto darkness control will turn off the LEDs. 
-                Lower values mean the LEDs will turn off in darker conditions.
+            <div class="toggle-container">
+                <span class="toggle-label">Presence Detection (Radar)</span>
+                <label class="toggle">
+                    <input type="checkbox" id="presenceDetectionToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="info-text">
+                <i class="fas fa-info-circle"></i> Presence detection uses the LD2410 radar sensor to detect human presence and automatically control LEDs.
             </div>
             
             <div class="action-buttons">
-                <button class="btn btn-primary" id="saveLuxThresholdBtn">
-                    <i class="fas fa-save"></i> Save Threshold
+                <button class="btn btn-primary" id="saveAutomationsBtn">
+                    <i class="fas fa-save"></i> Save Automations
                 </button>
             </div>
             
             <div class="info-text">
-                <i class="fas fa-info-circle"></i> Current threshold: <span class="current-value" id="currentLuxThreshold">--</span> lux
+                <i class="fas fa-info-circle"></i> Current settings: 
+                Auto Darkness: <span class="current-value" id="currentAutoDarkness">--</span>, 
+                Lux Threshold: <span class="current-value" id="currentLuxThreshold">--</span> lux,
+                Presence Detection: <span class="current-value" id="currentPresenceDetection">--</span>
             </div>
         </div>
 
@@ -514,20 +605,22 @@
         const saveDeviceIdBtn = document.getElementById('saveDeviceIdBtn');
         const loadDeviceIdBtn = document.getElementById('loadDeviceIdBtn');
         const currentDeviceId = document.getElementById('currentDeviceId');
-        // START OF CHANGE: Renamed and changed element type
+        const autoDarknessToggle = document.getElementById('autoDarknessToggle');
         const luxThresholdInput = document.getElementById('luxThresholdInput');
-        // Removed luxThresholdValue, as it was for the slider display
-        // const luxThresholdValue = document.getElementById('luxThresholdValue');
-        const saveLuxThresholdBtn = document.getElementById('saveLuxThresholdBtn');
+        const presenceDetectionToggle = document.getElementById('presenceDetectionToggle');
+        const saveAutomationsBtn = document.getElementById('saveAutomationsBtn');
+        const currentAutoDarkness = document.getElementById('currentAutoDarkness');
         const currentLuxThreshold = document.getElementById('currentLuxThreshold');
+        const currentPresenceDetection = document.getElementById('currentPresenceDetection');
         const resetDeviceBtn = document.getElementById('resetDeviceBtn');
-        // END OF CHANGE
 
         // Current state
         let currentState = {
             deviceId: "",
             basePath: "",
-            lux_threshold: 10.0
+            auto_darkness_control: false,
+            lux_threshold: 10.0,
+            presence_detection_enabled: false
         };
 
         // Firebase listeners reference
@@ -580,33 +673,65 @@
         }
 
         // Initialize Firebase listeners
-        function initializeFirebaseListeners() {
-            if (!currentState.basePath) return;
+// Initialize Firebase listeners
+function initializeFirebaseListeners() {
+    if (!currentState.basePath) return;
 
-            // Listen for device data
-            const deviceRef = database.ref(currentState.basePath);
-            firebaseListeners.push(deviceRef);
+    // Listen for device data
+    const deviceRef = database.ref(currentState.basePath);
+    firebaseListeners.push(deviceRef);
+    
+    deviceRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+        
+        if (data) {
+            // Update UI with device data
+            if (data.auto_darkness_control !== undefined) {
+                autoDarknessToggle.checked = data.auto_darkness_control;
+                currentState.auto_darkness_control = data.auto_darkness_control;
+                currentAutoDarkness.textContent = data.auto_darkness_control ? 'ON' : 'OFF';
+            }
             
-            deviceRef.on("value", (snapshot) => {
-                const data = snapshot.val();
-                
-                if (data) {
-                    // Update UI with device data
-                    if (data.lux_threshold !== undefined) {
-                        // START OF CHANGE: Updated element reference
-                        luxThresholdInput.value = data.lux_threshold;
-                        // luxThresholdValue was removed, so this line is commented/removed
-                        // luxThresholdValue.textContent = data.lux_threshold; 
-                        // END OF CHANGE
-                        currentLuxThreshold.textContent = data.lux_threshold;
-                        currentState.lux_threshold = data.lux_threshold;
-                    }
-                } else {
-                    console.log('Device not found');
+            if (data.lux_threshold !== undefined) {
+                // Only update the input field if it's not currently focused
+                if (document.activeElement !== luxThresholdInput) {
+                    luxThresholdInput.value = data.lux_threshold;
                 }
-            }, (error) => {
-                console.error('Firebase error:', error);
-            });
+                currentLuxThreshold.textContent = data.lux_threshold;
+                currentState.lux_threshold = data.lux_threshold;
+            }
+            
+            if (data.presence_detection_enabled !== undefined) {
+                presenceDetectionToggle.checked = data.presence_detection_enabled;
+                currentState.presence_detection_enabled = data.presence_detection_enabled;
+                currentPresenceDetection.textContent = data.presence_detection_enabled ? 'ON' : 'OFF';
+            }
+        } else {
+            console.log('Device not found');
+        }
+    }, (error) => {
+        console.error('Firebase error:', error);
+    });
+}
+
+        // Save automations settings
+        function saveAutomations() {
+            if (!currentState.basePath) {
+                alert('Please set a device ID first');
+                return;
+            }
+            
+            const luxThreshold = parseFloat(luxThresholdInput.value);
+            if (isNaN(luxThreshold) || luxThreshold < 0.1) {
+                alert('Please enter a valid lux threshold (minimum 0.1)');
+                return;
+            }
+            
+            updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
+            updateFirebaseValue('lux_threshold', luxThreshold);
+            updateFirebaseValue('presence_detection_enabled', presenceDetectionToggle.checked);
+            
+            alert('Automation settings saved successfully!');
         }
 
         // Initialize event listeners
@@ -633,29 +758,14 @@
                 }
             });
 
-            // START OF CHANGE: Removed slider 'input' event listener
-            // luxThresholdSlider.addEventListener('input', () => {
-            //     luxThresholdValue.textContent = luxThresholdSlider.value;
-            // });
-            // END OF CHANGE
+            // Save automations button
+            saveAutomationsBtn.addEventListener('click', saveAutomations);
 
-            // Save lux threshold button
-            saveLuxThresholdBtn.addEventListener('click', () => {
-                if (!currentState.basePath) {
-                    alert('Please set a device ID first');
-                    return;
+            // Save automations when pressing Enter in lux threshold input
+            luxThresholdInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveAutomations();
                 }
-                
-                // START OF CHANGE: Updated element reference
-                const newLuxThreshold = parseFloat(luxThresholdInput.value);
-                if (isNaN(newLuxThreshold)) {
-                    alert('Please enter a valid lux threshold number.');
-                    return;
-                }
-                
-                updateFirebaseValue('lux_threshold', newLuxThreshold);
-                // END OF CHANGE
-                alert('Lux threshold saved successfully!');
             });
 
             // Reset device button
@@ -673,6 +783,7 @@
                     updateFirebaseValue('color', 'FF0000');
                     updateFirebaseValue('auto_darkness_control', false);
                     updateFirebaseValue('lux_threshold', 10.0);
+                    updateFirebaseValue('presence_detection_enabled', false);
                     updateFirebaseValue('timer_enabled', true);
                     updateFirebaseValue('timer_on', '09:00');
                     updateFirebaseValue('timer_off', '17:00');
