@@ -612,16 +612,6 @@
             </div>
             
             <div class="info-text">
-                <i class="fas fa-info-circle"></i> Auto darkness control turns off LEDs when ambient light is below threshold. Presence detection uses the LD2410 radar sensor to detect human presence.
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn btn-primary" id="saveAutomationsBtn">
-                    <i class="fas fa-save"></i> Save Automations
-                </button>
-            </div>
-            
-            <div class="info-text">
                 <i class="fas fa-info-circle"></i> Current settings: 
                 Auto Darkness: <span class="current-value" id="currentAutoDarkness">--</span>, 
                 Lux Threshold: <span class="current-value" id="currentLuxThreshold">--</span> lux,
@@ -706,7 +696,6 @@
         const autoDarknessToggle = document.getElementById('autoDarknessToggle');
         const luxThresholdInput = document.getElementById('luxThresholdInput');
         const presenceDetectionToggle = document.getElementById('presenceDetectionToggle');
-        const saveAutomationsBtn = document.getElementById('saveAutomationsBtn');
         const currentAutoDarkness = document.getElementById('currentAutoDarkness');
         const currentLuxThreshold = document.getElementById('currentLuxThreshold');
         const currentPresenceDetection = document.getElementById('currentPresenceDetection');
@@ -1067,73 +1056,48 @@
             });
             
             luxThresholdInput.addEventListener('blur', () => {
-                // Short delay to allow the change to propagate
+                const luxThreshold = parseFloat(luxThresholdInput.value);
+                if (isNaN(luxThreshold) || luxThreshold < 0.1) {
+                    alert('Please enter a valid lux threshold (minimum 0.1)');
+                    luxThresholdInput.value = currentState.lux_threshold; // Revert to current state
+                    return;
+                }
+                userIsEditingLux = true; // Set flag before updating Firebase
+                updateFirebaseValue('lux_threshold', luxThreshold);
+                currentState.lux_threshold = luxThreshold; // Update local state immediately
+                currentLuxThreshold.textContent = luxThreshold; // Update display immediately
+
                 setTimeout(() => {
                     userIsEditingLux = false;
-                }, 1000);
+                }, 1000); // Reset flag after delay
             });
             
             // Track when user toggles auto darkness
-            autoDarknessToggle.addEventListener('click', () => {
-                userIsTogglingAutoDarkness = true;
-                // Short delay to allow the change to propagate
+            autoDarknessToggle.addEventListener('change', () => { // Changed from 'click' to 'change'
+                userIsTogglingAutoDarkness = true; // Set flag before updating Firebase
+                updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
+                currentState.auto_darkness_control = autoDarknessToggle.checked; // Update local state immediately
+                currentAutoDarkness.textContent = autoDarknessToggle.checked ? 'ON' : 'OFF'; // Update display immediately
+
                 setTimeout(() => {
                     userIsTogglingAutoDarkness = false;
-                }, 2000);
+                }, 2000); // Reset flag after delay
             });
             
             // Track when user toggles presence detection
-            presenceDetectionToggle.addEventListener('click', () => {
-                userIsTogglingPresence = true;
-                // Short delay to allow the change to propagate
+            presenceDetectionToggle.addEventListener('change', () => { // Changed from 'click' to 'change'
+                userIsTogglingPresence = true; // Set flag before updating Firebase
+                updateFirebaseValue('presence_detection_enabled', presenceDetectionToggle.checked);
+                currentState.presence_detection_enabled = presenceDetectionToggle.checked; // Update local state immediately
+                currentPresenceDetection.textContent = presenceDetectionToggle.checked ? 'ON' : 'OFF'; // Update display immediately
+
                 setTimeout(() => {
                     userIsTogglingPresence = false;
-                }, 2000);
+                }, 2000); // Reset flag after delay
             });
         }
 
-        // Save automations settings
-        function saveAutomations() {
-            if (!currentState.basePath) {
-                alert('Please set a device ID first');
-                return;
-            }
-            
-            const luxThreshold = parseFloat(luxThresholdInput.value);
-            if (isNaN(luxThreshold) || luxThreshold < 0.1) {
-                alert('Please enter a valid lux threshold (minimum 0.1)');
-                return;
-            }
-            
-            // Set flags to prevent Firebase listener from overwriting
-            window.userIsEditingLux = true;
-            window.userIsTogglingAutoDarkness = true;
-            window.userIsTogglingPresence = true;
-            
-            // Update Firebase values
-            updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
-            updateFirebaseValue('lux_threshold', luxThreshold);
-            updateFirebaseValue('presence_detection_enabled', presenceDetectionToggle.checked);
-            
-            // Update local state immediately
-            currentState.auto_darkness_control = autoDarknessToggle.checked;
-            currentState.lux_threshold = luxThreshold;
-            currentState.presence_detection_enabled = presenceDetectionToggle.checked;
-            
-            // Update display immediately
-            currentAutoDarkness.textContent = autoDarknessToggle.checked ? 'ON' : 'OFF';
-            currentLuxThreshold.textContent = luxThreshold;
-            currentPresenceDetection.textContent = presenceDetectionToggle.checked ? 'ON' : 'OFF';
-            
-            // Clear flags after a delay
-            setTimeout(() => {
-                window.userIsEditingLux = false;
-                window.userIsTogglingAutoDarkness = false;
-                window.userIsTogglingPresence = false;
-            }, 3000);
-            
-            alert('Automation settings saved successfully!');
-        }
+
 
         // Initialize event listeners
         function initializeEventListeners() {
@@ -1159,15 +1123,9 @@
                 }
             });
 
-            // Save automations button
-            saveAutomationsBtn.addEventListener('click', saveAutomations);
 
-            // Save automations when pressing Enter in lux threshold input
-            luxThresholdInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    saveAutomations();
-                }
-            });
+
+
 
             // Reset device button
             resetDeviceBtn.addEventListener('click', () => {
