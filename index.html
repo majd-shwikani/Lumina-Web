@@ -1079,81 +1079,17 @@
         // Initialize Firebase listeners
         function initializeFirebaseListeners() {
             if (!currentState.basePath) return;
-            
-            // Listen for connection status
-            const connectedRef = database.ref(".info/connected");
-            firebaseListeners.push(connectedRef);
-            
-            connectedRef.on("value", (snap) => {
-                if (snap.val() === true) {
-                    statusText.textContent = 'Connected to Firebase';
-                    connectionStatus.className = 'status-indicator connected';
-                } else {
-                    statusText.textContent = 'Disconnected from Firebase';
-                    connectionStatus.className = 'status-indicator';
-                }
-            });
 
-            // Listen for device data
             const deviceRef = database.ref(currentState.basePath);
+
+            // General connection and device existence listener
             firebaseListeners.push(deviceRef);
-            
             deviceRef.on("value", (snapshot) => {
-                const data = snapshot.val();
-                
-                if (data) {
-                    statusText.textContent = 'Connected to device';
-                    connectionStatus.className = 'status-indicator connected';
-                    
-                    // Update UI with device data
-                    if (data.enabled !== undefined) {
-                        powerToggle.checked = data.enabled;
-                        currentState.enabled = data.enabled;
-                    }
-                    
-                    if (data.effect !== undefined) {
-                        currentState.effect = data.effect;
-                        selectedEffect.textContent = effects[data.effect] || 'Unknown Effect';
-                        
-                        // Update dropdown selection
-                        document.querySelectorAll('.dropdown-item').forEach(item => {
-                            item.classList.remove('active');
-                            if (parseInt(item.dataset.effectId) === data.effect) {
-                                item.classList.add('active');
-                            }
-                        });
-                    }
-                    
-                    if (data.speed !== undefined) {
-                        speedSlider.value = data.speed;
-                        speedValue.textContent = data.speed;
-                        currentState.speed = data.speed;
-                    }
-                    
-                    if (data.color !== undefined) {
-                        const color = data.color.toUpperCase();
-                        colorPreview.style.backgroundColor = `#${color}`;
-                        colorPicker.value = `#${color}`;
-                        currentState.color = color;
-                    }
-                    
-                    if (data.timer_enabled !== undefined) {
-                        timerToggle.checked = data.timer_enabled;
-                        currentState.timer_enabled = data.timer_enabled;
-                    }
-                    
-                    if (data.timer_on !== undefined) {
-                        timerOnTimeInput.value = data.timer_on;
-                        currentState.timer_on = data.timer_on;
-                    }
-                    
-                    if (data.timer_off !== undefined) {
-                        timerOffTimeInput.value = data.timer_off;
-                        currentState.timer_off = data.timer_off;
-                    }
-                    
-                    if (data.presence !== undefined) {
-                        presenceValue.textContent = data.presence ? 'YES' : 'NO';
+                if (snapshot.exists()) {
+                    if (statusText.textContent !== 'Connected to device') {
+                        statusText.textContent = 'Connected to device';
+                        connectionStatus.className = 'status-indicator connected';
+                        setControlsEnabled(true);
                     }
                 } else {
                     statusText.textContent = 'Device not found';
@@ -1165,6 +1101,99 @@
                 statusText.textContent = 'Error connecting to device';
                 connectionStatus.className = 'status-indicator';
                 setControlsEnabled(false);
+            });
+
+            // Listener for 'enabled'
+            const enabledRef = deviceRef.child('enabled');
+            firebaseListeners.push(enabledRef);
+            enabledRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    powerToggle.checked = val;
+                    currentState.enabled = val;
+                }
+            });
+
+            // Listener for 'effect'
+            const effectRef = deviceRef.child('effect');
+            firebaseListeners.push(effectRef);
+            effectRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    currentState.effect = val;
+                    selectedEffect.textContent = effects[val] || 'Unknown Effect';
+                    document.querySelectorAll('.dropdown-item').forEach(item => {
+                        item.classList.toggle('active', parseInt(item.dataset.effectId) === val);
+                    });
+                }
+            });
+
+            // Listener for 'speed'
+            const speedRef = deviceRef.child('speed');
+            firebaseListeners.push(speedRef);
+            speedRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    speedSlider.value = val;
+                    speedValue.textContent = val;
+                    currentState.speed = val;
+                }
+            });
+
+            // Listener for 'color'
+            const colorRef = deviceRef.child('color');
+            firebaseListeners.push(colorRef);
+            colorRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    const color = val.toUpperCase();
+                    colorPreview.style.backgroundColor = `#${color}`;
+                    colorPicker.value = `#${color}`;
+                    currentState.color = color;
+                }
+            });
+
+            // Listener for 'timer_enabled'
+            const timerEnabledRef = deviceRef.child('timer_enabled');
+            firebaseListeners.push(timerEnabledRef);
+            timerEnabledRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    timerToggle.checked = val;
+                    currentState.timer_enabled = val;
+                }
+            });
+
+            // Listener for 'timer_on'
+            const timerOnRef = deviceRef.child('timer_on');
+            firebaseListeners.push(timerOnRef);
+            timerOnRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    timerOnTimeInput.value = val;
+                    currentState.timer_on = val;
+                }
+            });
+
+            // Listener for 'timer_off'
+            const timerOffRef = deviceRef.child('timer_off');
+            firebaseListeners.push(timerOffRef);
+            timerOffRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    timerOffTimeInput.value = val;
+                    currentState.timer_off = val;
+                }
+            });
+            
+            // Listener for 'presence'
+            const presenceRef = deviceRef.child('presence');
+            firebaseListeners.push(presenceRef);
+            presenceRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && val !== undefined) {
+                    presenceValue.textContent = val ? 'YES' : 'NO';
+                }
             });
         }
 
