@@ -303,45 +303,6 @@
             transform: translateX(30px);
         }
 
-        .slider-container {
-            margin: 20px 0;
-        }
-
-        .slider-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .slider-value {
-            font-weight: bold;
-            color: var(--success);
-        }
-
-        .range-slider {
-            width: 100%;
-            height: 8px;
-            -webkit-appearance: none;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            outline: none;
-        }
-
-        .range-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .range-slider::-webkit-slider-thumb:hover {
-            background: var(--primary-dark);
-            transform: scale(1.1);
-        }
-
         .btn {
             padding: 12px 24px;
             border: none;
@@ -501,6 +462,26 @@
         .wifi-bar:nth-child(4) { height: 16px; }
         .wifi-bar:nth-child(5) { height: 20px; }
 
+        .lux-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .lux-display .label {
+            font-size: 1rem;
+        }
+
+        .lux-display .value {
+            font-weight: bold;
+            color: var(--success);
+            font-size: 1.1rem;
+        }
+
         footer {
             text-align: center;
             margin-top: 40px;
@@ -600,6 +581,11 @@
                 <h2>Automations</h2>
             </div>
             
+            <div class="lux-display">
+                <span class="label">Current Lux Level:</span>
+                <span class="value" id="currentLuxValue">--</span>
+            </div>
+            
             <div class="toggle-container">
                 <span class="toggle-label">Auto Darkness Control</span>
                 <label class="toggle">
@@ -626,7 +612,7 @@
             </div>
             
             <div class="info-text">
-                <i class="fas fa-info-circle"></i> Presence detection uses the LD2410 radar sensor to detect human presence and automatically control LEDs.
+                <i class="fas fa-info-circle"></i> Auto darkness control turns off LEDs when ambient light is below threshold. Presence detection uses the LD2410 radar sensor to detect human presence.
             </div>
             
             <div class="action-buttons">
@@ -725,6 +711,7 @@
         const currentLuxThreshold = document.getElementById('currentLuxThreshold');
         const currentPresenceDetection = document.getElementById('currentPresenceDetection');
         const resetDeviceBtn = document.getElementById('resetDeviceBtn');
+        const currentLuxValue = document.getElementById('currentLuxValue');
         
         // Stats elements
         const statsLoading = document.getElementById('statsLoading');
@@ -1007,144 +994,146 @@
         }
 
         // Initialize Firebase listeners
-// Replace the initializeFirebaseListeners() function with this:
+        function initializeFirebaseListeners() {
+            if (!currentState.basePath) return;
 
-// Initialize Firebase listeners
-function initializeFirebaseListeners() {
-    if (!currentState.basePath) return;
+            // Flags to track user interaction
+            let userIsEditingLux = false;
+            let userIsTogglingAutoDarkness = false;
+            let userIsTogglingPresence = false;
+            
+            // Track last values to prevent unnecessary updates
+            let lastLuxThreshold = null;
+            let lastAutoDarkness = null;
+            let lastPresenceDetection = null;
 
-    // Flags to track user interaction
-    let userIsEditingLux = false;
-    let userIsTogglingAutoDarkness = false;
-    let userIsTogglingPresence = false;
-    
-    // Track last values to prevent unnecessary updates
-    let lastLuxThreshold = null;
-    let lastAutoDarkness = null;
-    let lastPresenceDetection = null;
-
-    // Listen for device data
-    const deviceRef = database.ref(currentState.basePath);
-    firebaseListeners.push(deviceRef);
-    
-    deviceRef.on("value", (snapshot) => {
-        const data = snapshot.val();
-        
-        if (data) {
-            // Update UI with device data - ONLY if user is not actively editing
+            // Listen for device data
+            const deviceRef = database.ref(currentState.basePath);
+            firebaseListeners.push(deviceRef);
             
-            // Auto Darkness Control
-            if (data.auto_darkness_control !== undefined) {
-                // Only update if not being toggled by user and value actually changed
-                if (!userIsTogglingAutoDarkness && data.auto_darkness_control !== lastAutoDarkness) {
-                    autoDarknessToggle.checked = data.auto_darkness_control;
-                    currentState.auto_darkness_control = data.auto_darkness_control;
-                    currentAutoDarkness.textContent = data.auto_darkness_control ? 'ON' : 'OFF';
-                    lastAutoDarkness = data.auto_darkness_control;
+            deviceRef.on("value", (snapshot) => {
+                const data = snapshot.val();
+                
+                if (data) {
+                    // Update current lux value
+                    if (data.lux !== undefined) {
+                        currentLuxValue.textContent = data.lux.toFixed(1);
+                    }
+                    
+                    // Update UI with device data - ONLY if user is not actively editing
+                    
+                    // Auto Darkness Control
+                    if (data.auto_darkness_control !== undefined) {
+                        // Only update if not being toggled by user and value actually changed
+                        if (!userIsTogglingAutoDarkness && data.auto_darkness_control !== lastAutoDarkness) {
+                            autoDarknessToggle.checked = data.auto_darkness_control;
+                            currentState.auto_darkness_control = data.auto_darkness_control;
+                            currentAutoDarkness.textContent = data.auto_darkness_control ? 'ON' : 'OFF';
+                            lastAutoDarkness = data.auto_darkness_control;
+                        }
+                    }
+                    
+                    // Lux Threshold
+                    if (data.lux_threshold !== undefined) {
+                        // Only update if not being edited by user and value actually changed
+                        if (!userIsEditingLux && data.lux_threshold !== lastLuxThreshold) {
+                            luxThresholdInput.value = data.lux_threshold;
+                            currentLuxThreshold.textContent = data.lux_threshold;
+                            currentState.lux_threshold = data.lux_threshold;
+                            lastLuxThreshold = data.lux_threshold;
+                        }
+                    }
+                    
+                    // Presence Detection
+                    if (data.presence_detection_enabled !== undefined) {
+                        // Only update if not being toggled by user and value actually changed
+                        if (!userIsTogglingPresence && data.presence_detection_enabled !== lastPresenceDetection) {
+                            presenceDetectionToggle.checked = data.presence_detection_enabled;
+                            currentState.presence_detection_enabled = data.presence_detection_enabled;
+                            currentPresenceDetection.textContent = data.presence_detection_enabled ? 'ON' : 'OFF';
+                            lastPresenceDetection = data.presence_detection_enabled;
+                        }
+                    }
+                } else {
+                    console.log('Device not found');
                 }
-            }
+            }, (error) => {
+                console.error('Firebase error:', error);
+            });
             
-            // Lux Threshold
-            if (data.lux_threshold !== undefined) {
-                // Only update if not being edited by user and value actually changed
-                if (!userIsEditingLux && data.lux_threshold !== lastLuxThreshold) {
-                    luxThresholdInput.value = data.lux_threshold;
-                    currentLuxThreshold.textContent = data.lux_threshold;
-                    currentState.lux_threshold = data.lux_threshold;
-                    lastLuxThreshold = data.lux_threshold;
-                }
-            }
+            // Track when user starts editing lux threshold
+            luxThresholdInput.addEventListener('focus', () => {
+                userIsEditingLux = true;
+            });
             
-            // Presence Detection
-            if (data.presence_detection_enabled !== undefined) {
-                // Only update if not being toggled by user and value actually changed
-                if (!userIsTogglingPresence && data.presence_detection_enabled !== lastPresenceDetection) {
-                    presenceDetectionToggle.checked = data.presence_detection_enabled;
-                    currentState.presence_detection_enabled = data.presence_detection_enabled;
-                    currentPresenceDetection.textContent = data.presence_detection_enabled ? 'ON' : 'OFF';
-                    lastPresenceDetection = data.presence_detection_enabled;
-                }
-            }
-        } else {
-            console.log('Device not found');
+            luxThresholdInput.addEventListener('blur', () => {
+                // Short delay to allow the change to propagate
+                setTimeout(() => {
+                    userIsEditingLux = false;
+                }, 1000);
+            });
+            
+            // Track when user toggles auto darkness
+            autoDarknessToggle.addEventListener('click', () => {
+                userIsTogglingAutoDarkness = true;
+                // Short delay to allow the change to propagate
+                setTimeout(() => {
+                    userIsTogglingAutoDarkness = false;
+                }, 2000);
+            });
+            
+            // Track when user toggles presence detection
+            presenceDetectionToggle.addEventListener('click', () => {
+                userIsTogglingPresence = true;
+                // Short delay to allow the change to propagate
+                setTimeout(() => {
+                    userIsTogglingPresence = false;
+                }, 2000);
+            });
         }
-    }, (error) => {
-        console.error('Firebase error:', error);
-    });
-    
-    // Track when user starts editing lux threshold
-    luxThresholdInput.addEventListener('focus', () => {
-        userIsEditingLux = true;
-    });
-    
-    luxThresholdInput.addEventListener('blur', () => {
-        // Short delay to allow the change to propagate
-        setTimeout(() => {
-            userIsEditingLux = false;
-        }, 1000);
-    });
-    
-    // Track when user toggles auto darkness
-    autoDarknessToggle.addEventListener('click', () => {
-        userIsTogglingAutoDarkness = true;
-        // Short delay to allow the change to propagate
-        setTimeout(() => {
-            userIsTogglingAutoDarkness = false;
-        }, 2000);
-    });
-    
-    // Track when user toggles presence detection
-    presenceDetectionToggle.addEventListener('click', () => {
-        userIsTogglingPresence = true;
-        // Short delay to allow the change to propagate
-        setTimeout(() => {
-            userIsTogglingPresence = false;
-        }, 2000);
-    });
-}
 
-// Also update the saveAutomations() function to prevent race conditions:
-function saveAutomations() {
-    if (!currentState.basePath) {
-        alert('Please set a device ID first');
-        return;
-    }
-    
-    const luxThreshold = parseFloat(luxThresholdInput.value);
-    if (isNaN(luxThreshold) || luxThreshold < 0.1) {
-        alert('Please enter a valid lux threshold (minimum 0.1)');
-        return;
-    }
-    
-    // Set flags to prevent Firebase listener from overwriting
-    window.userIsEditingLux = true;
-    window.userIsTogglingAutoDarkness = true;
-    window.userIsTogglingPresence = true;
-    
-    // Update Firebase values
-    updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
-    updateFirebaseValue('lux_threshold', luxThreshold);
-    updateFirebaseValue('presence_detection_enabled', presenceDetectionToggle.checked);
-    
-    // Update local state immediately
-    currentState.auto_darkness_control = autoDarknessToggle.checked;
-    currentState.lux_threshold = luxThreshold;
-    currentState.presence_detection_enabled = presenceDetectionToggle.checked;
-    
-    // Update display immediately
-    currentAutoDarkness.textContent = autoDarknessToggle.checked ? 'ON' : 'OFF';
-    currentLuxThreshold.textContent = luxThreshold;
-    currentPresenceDetection.textContent = presenceDetectionToggle.checked ? 'ON' : 'OFF';
-    
-    // Clear flags after a delay
-    setTimeout(() => {
-        window.userIsEditingLux = false;
-        window.userIsTogglingAutoDarkness = false;
-        window.userIsTogglingPresence = false;
-    }, 3000);
-    
-    alert('Automation settings saved successfully!');
-}
+        // Save automations settings
+        function saveAutomations() {
+            if (!currentState.basePath) {
+                alert('Please set a device ID first');
+                return;
+            }
+            
+            const luxThreshold = parseFloat(luxThresholdInput.value);
+            if (isNaN(luxThreshold) || luxThreshold < 0.1) {
+                alert('Please enter a valid lux threshold (minimum 0.1)');
+                return;
+            }
+            
+            // Set flags to prevent Firebase listener from overwriting
+            window.userIsEditingLux = true;
+            window.userIsTogglingAutoDarkness = true;
+            window.userIsTogglingPresence = true;
+            
+            // Update Firebase values
+            updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
+            updateFirebaseValue('lux_threshold', luxThreshold);
+            updateFirebaseValue('presence_detection_enabled', presenceDetectionToggle.checked);
+            
+            // Update local state immediately
+            currentState.auto_darkness_control = autoDarknessToggle.checked;
+            currentState.lux_threshold = luxThreshold;
+            currentState.presence_detection_enabled = presenceDetectionToggle.checked;
+            
+            // Update display immediately
+            currentAutoDarkness.textContent = autoDarknessToggle.checked ? 'ON' : 'OFF';
+            currentLuxThreshold.textContent = luxThreshold;
+            currentPresenceDetection.textContent = presenceDetectionToggle.checked ? 'ON' : 'OFF';
+            
+            // Clear flags after a delay
+            setTimeout(() => {
+                window.userIsEditingLux = false;
+                window.userIsTogglingAutoDarkness = false;
+                window.userIsTogglingPresence = false;
+            }, 3000);
+            
+            alert('Automation settings saved successfully!');
+        }
 
         // Initialize event listeners
         function initializeEventListeners() {
