@@ -1186,14 +1186,21 @@
                 }
             });
             
-            // Listener for 'presence'
-            const presenceRef = deviceRef.child('presence');
+            // Listener for presence - CORRECT PATH based on your tasks.cpp
+            // The data is at: /devices/{deviceId}/sensor_stats/sensors/presence
+            const presenceRef = database.ref(currentState.basePath + 'sensor_stats/sensors/presence');
             firebaseListeners.push(presenceRef);
             presenceRef.on('value', (snapshot) => {
                 const val = snapshot.val();
+                console.log('Presence value from Firebase:', val); // Debug log
                 if (val !== null && val !== undefined) {
                     presenceValue.textContent = val ? 'YES' : 'NO';
+                } else {
+                    presenceValue.textContent = '--';
                 }
+            }, (error) => {
+                console.error('Error reading presence:', error);
+                presenceValue.textContent = 'Error';
             });
         }
 

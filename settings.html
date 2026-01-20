@@ -636,7 +636,7 @@
                 </div>
                 
                 <div class="info-text">
-                    <i class="fas fa-info-circle"></i> Stats update automatically every 10 seconds
+                    <i class="fas fa-info-circle"></i> Combined sensor+stats data updates every 2 seconds
                 </div>
             </div>
             
@@ -720,7 +720,7 @@
 
         // Firebase listeners reference
         let firebaseListeners = [];
-        let statsListener = null;
+        let sensorStatsListener = null;
 
         // Update Firebase value with device path
         function updateFirebaseValue(path, value) {
@@ -756,8 +756,8 @@
             // Initialize Firebase listeners for the new device
             initializeFirebaseListeners();
             
-            // Start listening to stats
-            startStatsListener();
+            // Start listening to sensor_stats
+            startSensorStatsListener();
             
             // Save to localStorage for convenience
             localStorage.setItem('lastDeviceId', currentState.deviceId);
@@ -770,9 +770,9 @@
             });
             firebaseListeners = [];
             
-            if (statsListener) {
-                statsListener.off();
-                statsListener = null;
+            if (sensorStatsListener) {
+                sensorStatsListener.off();
+                sensorStatsListener = null;
             }
         }
 
@@ -849,8 +849,8 @@
             }
             
             // Calculate RAM usage percentage
-            const totalRam = statsData.total_heap || 0;
-            const freeRam = statsData.free_heap || 0;
+            const totalRam = (statsData.total_heap_kb || 0) * 1024;
+const freeRam = (statsData.free_heap_kb || 0) * 1024;    // Convert KB back to bytes
             const usedRam = totalRam - freeRam;
             const ramUsagePercent = totalRam > 0 ? (usedRam * 100.0) / totalRam : 0;
             
@@ -903,10 +903,11 @@
             ];
             
             // Add PSRAM stats if available
-            if (statsData.psram_size && statsData.psram_size > 0) {
-                const freePsram = statsData.free_psram || 0;
-                const psramUsagePercent = statsData.psram_size > 0 ? 
-                    ((statsData.psram_size - freePsram) * 100.0) / statsData.psram_size : 0;
+            if (statsData.psram_size_kb && statsData.psram_size_kb > 0) {
+                const psramSizeBytes = statsData.psram_size_kb * 1024;
+                const freePsramBytes = statsData.free_psram_kb * 1024;
+                const psramUsagePercent = psramSizeBytes > 0 ? 
+                    ((psramSizeBytes - freePsramBytes) * 100.0) / psramSizeBytes : 0;
                 
                 statsItems.push({
                     label: 'PSRAM Usage',
@@ -917,7 +918,7 @@
                 
                 statsItems.push({
                     label: 'Free PSRAM',
-                    value: formatBytes(freePsram),
+                    value: formatBytes(freePsramBytes),
                     icon: 'fas fa-memory',
                     className: 'stat-item'
                 });
@@ -947,8 +948,8 @@
             });
         }
 
-        // Start listening to stats
-        function startStatsListener() {
+        // Start listening to sensor_stats
+        function startSensorStatsListener() {
             if (!currentState.basePath) {
                 statsError.style.display = 'block';
                 statsErrorMessage.textContent = 'Please set a device ID first';
@@ -957,11 +958,11 @@
                 return;
             }
             
-            const statsPath = currentState.basePath + 'stats';
+            const sensorStatsPath = currentState.basePath + 'sensor_stats';
             
             // Remove previous listener
-            if (statsListener) {
-                statsListener.off();
+            if (sensorStatsListener) {
+                sensorStatsListener.off();
             }
             
             // Show loading state
@@ -969,15 +970,29 @@
             statsError.style.display = 'none';
             statsContainer.style.display = 'none';
             
-            // Listen to stats
-            statsListener = database.ref(statsPath);
-            statsListener.on("value", (snapshot) => {
-                const statsData = snapshot.val();
-                updateStatsDisplay(statsData);
+            // Listen to sensor_stats (which contains both sensors and stats)
+            sensorStatsListener = database.ref(sensorStatsPath);
+            sensorStatsListener.on("value", (snapshot) => {
+                const combinedData = snapshot.val();
+                if (combinedData) {
+                    // Extract sensor data for lux display
+                    if (combinedData.sensors && combinedData.sensors.lux !== undefined) {
+                        currentLuxValue.textContent = combinedData.sensors.lux.toFixed(1);
+                    }
+                    
+                    // Extract and display stats data
+                    const statsData = combinedData.stats || null;
+                    updateStatsDisplay(statsData);
+                } else {
+                    statsLoading.style.display = 'none';
+                    statsError.style.display = 'block';
+                    statsErrorMessage.textContent = 'No sensor_stats data available';
+                    statsContainer.style.display = 'none';
+                }
             }, (error) => {
                 statsLoading.style.display = 'none';
                 statsError.style.display = 'block';
-                statsErrorMessage.textContent = `Error loading stats: ${error.message}`;
+                statsErrorMessage.textContent = `Error loading sensor_stats: ${error.message}`;
                 statsContainer.style.display = 'none';
             });
         }
@@ -1004,10 +1019,8 @@
                 const data = snapshot.val();
                 
                 if (data) {
-                    // Update current lux value
-                    if (data.lux !== undefined) {
-                        currentLuxValue.textContent = data.lux.toFixed(1);
-                    }
+                    // Note: Lux value now comes from sensor_stats, not root level
+                    // We handle lux in startSensorStatsListener()
                     
                     // Update UI with device data - ONLY if user is not actively editing
                     
@@ -1073,7 +1086,7 @@
             });
             
             // Track when user toggles auto darkness
-            autoDarknessToggle.addEventListener('change', () => { // Changed from 'click' to 'change'
+            autoDarknessToggle.addEventListener('change', () => {
                 userIsTogglingAutoDarkness = true; // Set flag before updating Firebase
                 updateFirebaseValue('auto_darkness_control', autoDarknessToggle.checked);
                 currentState.auto_darkness_control = autoDarknessToggle.checked; // Update local state immediately
@@ -1085,7 +1098,7 @@
             });
             
             // Track when user toggles presence detection
-            presenceDetectionToggle.addEventListener('change', () => { // Changed from 'click' to 'change'
+            presenceDetectionToggle.addEventListener('change', () => {
                 userIsTogglingPresence = true; // Set flag before updating Firebase
                 updateFirebaseValue('presence_detection_enabled', presenceDetectionToggle.checked);
                 currentState.presence_detection_enabled = presenceDetectionToggle.checked; // Update local state immediately
@@ -1096,8 +1109,6 @@
                 }, 2000); // Reset flag after delay
             });
         }
-
-
 
         // Initialize event listeners
         function initializeEventListeners() {
@@ -1122,10 +1133,6 @@
                     alert('No device ID found in storage');
                 }
             });
-
-
-
-
 
             // Reset device button
             resetDeviceBtn.addEventListener('click', () => {
