@@ -749,6 +749,15 @@
 
             // Add Power, Current, Voltage if available
             if (sensorsData) {
+                if (sensorsData.cpu_temp !== undefined) {
+                    statsItems.push({
+                        label: 'CPU Temp',
+                        value: `${sensorsData.cpu_temp.toFixed(1)} °C`,
+                        icon: 'fas fa-thermometer-half',
+                        color: sensorsData.cpu_temp > 70 ? 'var(--danger)' : 'var(--success)',
+                        className: 'stat-item'
+                    });
+                }
                 if (sensorsData.power !== undefined) {
                     statsItems.push({
                         label: 'Power Draw',
