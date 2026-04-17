@@ -933,7 +933,7 @@
             let lastPresenceDetection = null;
 
             // Listen for device data
-            const deviceRef = database.ref(currentState.basePath);
+            const deviceRef = database.ref(currentState.basePath + 'local');
             firebaseListeners.push(deviceRef);
             
             deviceRef.on("value", (snapshot) => {
