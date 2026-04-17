@@ -629,9 +629,43 @@
         }
 
         let firebaseListeners = [];
+        let heartbeatInterval = null;
+        let lastHeartbeatTime = 0;
+        let connectionStartTime = 0;
+        let lastLoopCounter = null;
+
+        function updateConnectionUI() {
+            const dot = document.getElementById('connectionStatus');
+            const text = document.getElementById('statusText');
+            const now = Date.now();
+
+            // Show Loading for the first 5 seconds
+            if (now - connectionStartTime < 5000) {
+                text.textContent = 'Loading...';
+                dot.className = 'status-dot';
+                return;
+            }
+
+            // After 5s, check if we've had a fresh update recently
+            if (lastHeartbeatTime !== 0 && now - lastHeartbeatTime < 5000) {
+                dot.className = 'status-dot connected';
+                text.textContent = 'Lumina Connected';
+            } else {
+                dot.className = 'status-dot';
+                text.textContent = 'Lumina Disconnected';
+            }
+        }
+
         function removeListeners() {
             firebaseListeners.forEach(ref => ref.off());
             firebaseListeners = [];
+            lastHeartbeatTime = 0;
+            lastLoopCounter = null;
+            connectionStartTime = Date.now();
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
         }
 
         function initListeners() {
@@ -685,10 +719,24 @@
                 document.getElementById('colorPreview').style.backgroundColor = '#' + color;
                 
                 document.getElementById('selectedEffect').textContent = effects[data.effect] || 'Rainbow Cycle';
-                
-                document.getElementById('connectionStatus').className = 'status-dot connected';
-                document.getElementById('statusText').textContent = 'Online';
             });
+
+            // Heartbeat listener (detect changes in loop_counter)
+            const heartbeatRef = database.ref(base + 'local/sensor_stats/stats/loop_counter');
+            firebaseListeners.push(heartbeatRef);
+            heartbeatRef.on('value', snap => {
+                const currentVal = snap.val();
+                if (currentVal !== null) {
+                    if (lastLoopCounter !== null && currentVal !== lastLoopCounter) {
+                        lastHeartbeatTime = Date.now();
+                    }
+                    lastLoopCounter = currentVal;
+                    updateConnectionUI();
+                }
+            });
+
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(updateConnectionUI, 1000);
 
             // Timers & Sensors (Always from Local)
             const localRef = database.ref(base + 'local');
