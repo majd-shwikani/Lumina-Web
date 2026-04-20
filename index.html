@@ -489,6 +489,22 @@
                     <label class="toggle"><input type="checkbox" id="powerToggle"><span class="slider"></span></label>
                 </div>
 
+                <div class="control-row">
+                    <div>
+                        <div class="control-label">Power Consumption</div>
+                        <div class="control-sub">Real-time usage</div>
+                    </div>
+                    <div id="powerDrawDisplay" style="font-family:monospace; color:var(--success); font-weight:700;">0.0 W</div>
+                </div>
+
+                <div style="margin: 20px 0; padding: 0 10px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span class="control-label">Master Brightness</span>
+                        <span id="brightnessValue" style="color:var(--primary); font-family:monospace;">100%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value="100" id="brightnessSlider">
+                </div>
+
                 <div id="mirrorControlContainer" class="control-row" style="display: none;">
                     <div>
                         <div class="control-label">Mirror Gateway</div>
@@ -526,14 +542,6 @@
 
                 <div style="margin: 20px 0;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <span class="control-label">Master Brightness</span>
-                        <span id="brightnessValue" style="color:var(--primary); font-family:monospace;">255</span>
-                    </div>
-                    <input type="range" min="0" max="255" value="255" id="brightnessSlider">
-                </div>
-
-                <div style="margin: 20px 0;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                         <span class="control-label">Animation Speed</span>
                         <span id="speedValue" style="color:var(--primary); font-family:monospace;">50</span>
                     </div>
@@ -550,17 +558,18 @@
             <div class="card">
                 <div class="card-header">
                     <i class="fas fa-wave-square"></i>
-                    <h2>Sensors & Audio</h2>
+                    <h2>Sensors</h2>
                 </div>
                 
-                <div style="background: var(--bg-input); padding: 20px; border-radius: var(--radius-md); text-align: center; margin-bottom: 20px;">
+                <div style="background: var(--bg-input); padding: 20px; border-radius: var(--radius-md); text-align: center;">
                     <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 5px;">Human Presence</div>
-                    <div id="presenceValue" style="font-size: 1.5rem; font-weight: 700; color: var(--success);">--</div>
-                </div>
+                    <div id="presenceValue" style="font-size: 1.5rem; font-weight: 700; color: var(--success); margin-bottom: 20px;">--</div>
 
-                <button class="btn-primary" id="calibrateMicBtn">
-                    <i class="fas fa-microphone-lines"></i> Calibrate Microphone
-                </button>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 5px;">Ambient Luminance</div>
+                        <div id="luxValue" style="font-size: 1.5rem; font-weight: 700; color: var(--warning);">--</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -729,8 +738,10 @@
                 speedSlider.value = data.speed || 50;
                 document.getElementById('speedValue').textContent = data.speed || 50;
 
-                brightnessSlider.value = data.brightness !== undefined ? data.brightness : 255;
-                document.getElementById('brightnessValue').textContent = brightnessSlider.value;
+                const brightness = data.brightness !== undefined ? data.brightness : 255;
+                const brightnessPercent = Math.round(brightness / 2.55);
+                brightnessSlider.value = brightnessPercent;
+                document.getElementById('brightnessValue').textContent = brightnessPercent + '%';
                 
                 const color = data.color || "FF0000";
                 colorPicker.color.set('#' + color);
@@ -766,7 +777,16 @@
                 document.getElementById('timerOffTimeInput').value = data.timer_off || "17:00";
                 
                 if (data.sensor_stats && data.sensor_stats.sensors) {
-                    document.getElementById('presenceValue').textContent = data.sensor_stats.sensors.presence ? 'Detected' : 'Clear';
+                    const sensors = data.sensor_stats.sensors;
+                    document.getElementById('presenceValue').textContent = sensors.presence ? 'Detected' : 'Clear';
+                    
+                    // Ambient Luminance
+                    document.getElementById('luxValue').textContent = sensors.lux !== undefined ? sensors.lux.toFixed(1) + ' lx' : '--';
+
+                    // Power Draw logic: mw to W, zero if < 500mw
+                    const powerMw = sensors.power || 0;
+                    const powerW = powerMw < 500 ? 0 : (powerMw / 1000).toFixed(1);
+                    document.getElementById('powerDrawDisplay').textContent = powerW + ' W';
                 }
             });
         }
@@ -785,8 +805,11 @@
         speedSlider.addEventListener('input', () => document.getElementById('speedValue').textContent = speedSlider.value);
         speedSlider.addEventListener('change', () => updateFirebaseValue('speed', parseInt(speedSlider.value)));
         
-        brightnessSlider.addEventListener('input', () => document.getElementById('brightnessValue').textContent = brightnessSlider.value);
-        brightnessSlider.addEventListener('change', () => updateFirebaseValue('brightness', parseInt(brightnessSlider.value)));
+        brightnessSlider.addEventListener('input', () => document.getElementById('brightnessValue').textContent = brightnessSlider.value + '%');
+        brightnessSlider.addEventListener('change', () => {
+            const scaledBrightness = Math.round(parseInt(brightnessSlider.value) * 2.55);
+            updateFirebaseValue('brightness', scaledBrightness);
+        });
 
         document.getElementById('timerToggle').addEventListener('change', (e) => updateFirebaseValue('timer_enabled', e.target.checked));
         document.getElementById('timerOnTimeInput').addEventListener('change', (e) => updateFirebaseValue('timer_on', e.target.value));
@@ -818,12 +841,6 @@
                 };
                 dropdownList.appendChild(item);
             }
-        });
-
-        document.getElementById('calibrateMicBtn').addEventListener('click', () => {
-            const base = `/devices/${currentState.deviceId}/local/`;
-            database.ref(base + 'mic_calibration').set(true);
-            setTimeout(() => database.ref(base + 'mic_calibration').set(false), 5000);
         });
 
         document.getElementById('currentDeviceId').textContent = currentState.deviceId;

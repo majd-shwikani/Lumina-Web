@@ -497,6 +497,10 @@
                 Threshold <span class="current-value" id="currentLuxThreshold">--</span> &bull; 
                 Radar <span class="current-value" id="currentPresenceDetection">--</span>
             </div>
+
+            <button class="btn btn-secondary" id="calibrateMicBtn" style="width: 100%; margin-top: 20px;">
+                <i class="fas fa-microphone-lines"></i> Calibrate Microphone
+            </button>
         </div>
 
         <!-- 3. SYSTEM DIAGNOSTICS -->
@@ -1053,6 +1057,18 @@
                 } else {
                     alert('No device ID found in storage');
                 }
+            });
+
+            // Calibrate Mic button
+            const calibrateMicBtn = document.getElementById('calibrateMicBtn');
+            calibrateMicBtn.addEventListener('click', () => {
+                if (!currentState.basePath) {
+                    alert('Please set a device ID first');
+                    return;
+                }
+                updateFirebaseValue('mic_calibration', true);
+                setTimeout(() => updateFirebaseValue('mic_calibration', false), 5000);
+                alert('Microphone calibration started. Please remain quiet for 5 seconds.');
             });
 
             // Reset device button
