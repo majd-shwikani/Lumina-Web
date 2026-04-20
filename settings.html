@@ -1062,20 +1062,16 @@
                     return;
                 }
                 
-                if (confirm('Are you sure you want to reset the device to factory defaults? This action cannot be undone.')) {
-                    // Reset to default values
-                    updateFirebaseValue('enabled', false);
-                    updateFirebaseValue('effect', 0);
-                    updateFirebaseValue('speed', 50);
-                    updateFirebaseValue('color', 'FF0000');
-                    updateFirebaseValue('auto_darkness_control', false);
-                    updateFirebaseValue('lux_threshold', 10.0);
-                    updateFirebaseValue('presence_detection_enabled', false);
-                    updateFirebaseValue('timer_enabled', true);
-                    updateFirebaseValue('timer_on', '09:00');
-                    updateFirebaseValue('timer_off', '17:00');
+                if (confirm('Are you sure you want to reset the device?')) {
+                    // Set reset to true
+                    updateFirebaseValue('reset', true);
                     
-                    alert('Device reset to factory defaults!');
+                    // After 10 seconds, set it back to false
+                    setTimeout(() => {
+                        updateFirebaseValue('reset', false);
+                    }, 10000);
+                    
+                    alert('Reset command sent. The device will reset shortly.');
                 }
             });
         }

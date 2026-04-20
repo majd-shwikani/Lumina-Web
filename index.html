@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <style>
         :root {
             --bg-body: #050505;
@@ -539,10 +540,9 @@
                     <input type="range" min="10" max="200" value="50" id="speedSlider">
                 </div>
 
-                <div class="color-controls">
-                    <div class="color-preview" id="colorPreview"></div>
-                    <input type="color" id="colorPicker" value="#FF0000">
-                    <button class="btn-icon" id="randomColorBtn"><i class="fas fa-random"></i></button>
+                <!-- Color Picker Section -->
+                <div style="margin-top: 24px; border-top: 1px solid var(--border-light); padding-top: 20px;">
+                    <div id="pickerContainer" style="display: flex; justify-content: center;"></div>
                 </div>
             </div>
 
@@ -616,9 +616,20 @@
         const powerToggle = document.getElementById('powerToggle');
         const speedSlider = document.getElementById('speedSlider');
         const brightnessSlider = document.getElementById('brightnessSlider');
-        const colorPicker = document.getElementById('colorPicker');
         const dropdownHeader = document.getElementById('dropdownHeader');
         const dropdownList = document.getElementById('dropdownList');
+
+        // Initialize Iro.js Color Picker
+        const colorPicker = new iro.ColorPicker("#pickerContainer", {
+            width: 180,
+            color: "#FF0000",
+            borderWidth: 2,
+            borderColor: "#fff",
+            layout: [
+                { component: iro.ui.Wheel, options: {} },
+                { component: iro.ui.Slider, options: { sliderType: 'hue' } }
+            ]
+        });
 
         function updateFirebaseValue(path, value) {
             if (!currentState.deviceId) return;
@@ -627,6 +638,13 @@
             const fullPath = base + target + '/' + path;
             database.ref(fullPath).set(value);
         }
+
+        // Handle iro.js color changes (sync to Firebase on release)
+        colorPicker.on('input:end', function(color) {
+            const hex = color.hexString.substring(1).toUpperCase();
+            updateFirebaseValue('color', hex);
+            updateFirebaseValue('effect', 21); // Switch to Solid Color
+        });
 
         let firebaseListeners = [];
         let heartbeatInterval = null;
@@ -715,8 +733,7 @@
                 document.getElementById('brightnessValue').textContent = brightnessSlider.value;
                 
                 const color = data.color || "FF0000";
-                colorPicker.value = '#' + color;
-                document.getElementById('colorPreview').style.backgroundColor = '#' + color;
+                colorPicker.color.set('#' + color);
                 
                 document.getElementById('selectedEffect').textContent = effects[data.effect] || 'Rainbow Cycle';
             });
@@ -771,12 +788,6 @@
         brightnessSlider.addEventListener('input', () => document.getElementById('brightnessValue').textContent = brightnessSlider.value);
         brightnessSlider.addEventListener('change', () => updateFirebaseValue('brightness', parseInt(brightnessSlider.value)));
 
-        colorPicker.addEventListener('change', () => {
-            const color = colorPicker.value.substring(1).toUpperCase();
-            document.getElementById('colorPreview').style.backgroundColor = '#' + color;
-            updateFirebaseValue('color', color);
-        });
-        
         document.getElementById('timerToggle').addEventListener('change', (e) => updateFirebaseValue('timer_enabled', e.target.checked));
         document.getElementById('timerOnTimeInput').addEventListener('change', (e) => updateFirebaseValue('timer_on', e.target.value));
         document.getElementById('timerOffTimeInput').addEventListener('change', (e) => updateFirebaseValue('timer_off', e.target.value));
